@@ -1,0 +1,30 @@
+[
+  {
+    "salutation": "Mr.",
+    "callingName": "Emilio",
+    "fullName": "Emilio Jun Ren Vergara",
+    "cardName": "Emilio Vergara",
+    "position": "Brand Communications Manager",
+    "division": "MKT - Marketing",
+    "mobile": "+6014-227 5101",
+    "email": "emilio.v@dpointernational.com",
+    "office": "DPO International",
+    "company": "DPO International Sdn. Bhd.",
+    "address": "DPO House, B2-G, Jalan PJU 7/3, Mutiara Damansara, 47810 Petaling Jaya, Selangor",
+    "officePhone": "+603 4108 1282"
+  },
+  {
+    "salutation": "Ms.",
+    "callingName": "Batrisyia",
+    "fullName": "Batrisyia Bahrun",
+    "cardName": "Batrisyia Bahrun",
+    "position": "HR Manager",
+    "division": "HRM - Human Resources",
+    "mobile": "+6011-1234 5678",
+    "email": "batrisyia.b@dpointernational.com",
+    "office": "DPO International",
+    "company": "DPO International Sdn. Bhd.",
+    "address": "DPO House, B2-G, Jalan PJU 7/3, Mutiara Damansara, 47810 Petaling Jaya, Selangor",
+    "officePhone": "+603 4108 1282"
+  }
+]
