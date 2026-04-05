@@ -1,8 +1,8 @@
 // Full DPO International logo — white version (for blue backgrounds)
 // Extracted from corporate prototype. viewBox: 348×235
-export default function DpoLogo({ height = 44 }) {
+export default function DpoLogo({ height = 44, dataAttr }) {
   return (
-    <svg height={height} viewBox="0 0 348 235" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <svg height={height} viewBox="0 0 348 235" xmlns="http://www.w3.org/2000/svg" fill="none" {...(dataAttr ? { 'data-logo-svg': 'true' } : {})}>
       {/* Orange underline */}
       <path d="M340.927 231.594 147.543 231.594 147.543 234.597 340.927 234.597Z" fill="#F58232" />
       {/* O */}

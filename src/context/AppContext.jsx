@@ -5,7 +5,7 @@ import { deriveCountry, getCountryToggles } from '../utils/countryDerive'
 // Seed initial employee records — merge sheet data with stored overrides from localStorage
 function buildEmployees() {
   const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
-  return employeesRaw.map((raw) => {
+  const fromSheet = employeesRaw.map((raw) => {
     const id = raw.email.split('@')[0].replace(/\./g, '_')
     const country = deriveCountry(raw.office)
     const defaults = {
@@ -32,6 +32,10 @@ function buildEmployees() {
     // Merge any user-saved overrides
     return { ...defaults, ...(stored[id] || {}) }
   })
+  // Also load manually-added employees from localStorage
+  const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
+  const manualWithOverrides = manualList.map((emp) => ({ ...emp, ...(stored[emp.id] || {}) }))
+  return [...fromSheet, ...manualWithOverrides]
 }
 
 const ADMINS_DEFAULT = [
@@ -79,6 +83,45 @@ export function AppProvider({ children }) {
     )
   }
 
+  // Add a manually-created employee (not from spreadsheet)
+  function addManualEmployee(formData) {
+    const id = formData.email.split('@')[0].replace(/\./g, '_')
+    // Prevent duplicates
+    if (employees.find((e) => e.id === id)) {
+      alert('An employee with this email already exists.')
+      return false
+    }
+    const country = deriveCountry(formData.office)
+    const newEmp = {
+      id,
+      salutation: '',
+      callingName: '',
+      fullName: formData.fullName || formData.cardName || '',
+      cardName: formData.cardName || formData.fullName || '',
+      position: formData.position || '',
+      division: formData.division || '',
+      mobile: formData.mobile || '',
+      email: formData.email,
+      country,
+      office: formData.office || '',
+      company: formData.company || '',
+      address: formData.address || '',
+      officePhone: formData.officePhone || '',
+      photo: null,
+      toggles: getCountryToggles(country),
+      social: { whatsapp: '', line: '', wechat: '', linkedin: '' },
+      customButtons: [],
+      adminOnly: false,
+      source: 'manual',
+    }
+    // Persist to localStorage manual employees list
+    const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
+    manualList.push(newEmp)
+    localStorage.setItem('dpo_manual_employees', JSON.stringify(manualList))
+    setEmployees((prev) => [...prev, newEmp])
+    return true
+  }
+
   function login(email, password) {
     if (password !== BLANKET_PASSWORD) return false
     const emp = employees.find((e) => e.email.toLowerCase() === email.toLowerCase())
@@ -122,6 +165,7 @@ export function AppProvider({ children }) {
         isAdmin,
         getEmployee,
         saveEmployeeOverride,
+        addManualEmployee,
       }}
     >
       {children}
