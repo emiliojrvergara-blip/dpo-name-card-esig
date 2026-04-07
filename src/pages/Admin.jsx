@@ -185,7 +185,7 @@ function AddEmpModal({ onClose, onAdd }) {
     onClose()
   }
 
-  const DIVISIONS = ['ADM - Administration','CSM - Customer Service','FDS - Food Service','FNL - Food & Nutrition Lab','FPR - Food Processing','HRM - Human Resources','ICT - Information & Communications Technology','IND - Industry','MKT - Marketing','NBD - New Business Development','RTL - Retail','SCM - Supply Chain Management','SCR - Sourcing']
+  const DIVISIONS = ['ADM - Administration','CSM - Consumer','FDS - Foodservice','FNL - Finance & Legal','FPR - Food Processing','HRM - Human Resources Management','ICT - Information & Communication Technology','IND - Industry','MKT - Marketing','NBD - New Business Development','RTL - Retail','SCM - Supply Chain Management','SCR - Scientific & Regulatory Affairs']
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px 16px', overflowY: 'auto', backdropFilter: 'blur(4px)' }}>
