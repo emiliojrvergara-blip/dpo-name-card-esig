@@ -31,14 +31,14 @@ const TABS = [
 // ── Tab icons ─────────────────────────────────────────────────────────────────
 function ProfileIcon({ active }) {
   return (
-    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx={12} cy={7} r={4} />
     </svg>
   )
 }
 function SocialIcon({ active }) {
   return (
-    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <circle cx={18} cy={5} r={3} /><circle cx={6} cy={12} r={3} /><circle cx={18} cy={19} r={3} />
       <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
     </svg>
@@ -46,7 +46,7 @@ function SocialIcon({ active }) {
 }
 function QRIcon({ active }) {
   return (
-    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <rect x={3} y={3} width={7} height={7} rx={1} /><rect x={14} y={3} width={7} height={7} rx={1} />
       <rect x={3} y={14} width={7} height={7} rx={1} />
       <path d="M14 14h3v3M17 14v4h4M14 21h3" />
@@ -579,7 +579,7 @@ function TabBar({ tabs, activeTab, onChange }) {
             <Icon active={active} />
             <span style={{
               fontSize: 12, fontWeight: active ? 700 : 500,
-              color: active ? C.blue : C.textTertiary,
+              color: active ? C.blue : '#6e6e73',
               letterSpacing: '-0.01em',
             }}>
               {label}

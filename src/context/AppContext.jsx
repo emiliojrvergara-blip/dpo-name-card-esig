@@ -4,8 +4,7 @@ import { deriveCountry, getCountryToggles } from '../utils/countryDerive'
 
 // Fields that can be synced from Excel — admin edits to these are lockable
 const LOCKABLE_FIELDS = [
-  'cardName', 'fullName', 'callingName', 'salutation',
-  'position', 'division', 'mobile', 'email',
+  'cardName', 'position', 'division', 'mobile', 'email',
   'office', 'company', 'address', 'officePhone', 'website',
 ]
 
@@ -23,9 +22,6 @@ function buildEmployees() {
       const country = deriveCountry(raw.office)
       const defaults = {
         id,
-        salutation: raw.salutation || '',
-        callingName: raw.callingName || '',
-        fullName: raw.fullName || '',
         cardName: raw.cardName || raw.fullName || '',
         position: raw.position || '',
         division: raw.division || '',
@@ -142,10 +138,7 @@ export function AppProvider({ children }) {
     const country = deriveCountry(formData.office)
     const newEmp = {
       id,
-      salutation: '',
-      callingName: '',
-      fullName: formData.fullName || formData.cardName || '',
-      cardName: formData.cardName || formData.fullName || '',
+      cardName: formData.cardName || '',
       position: formData.position || '',
       division: formData.division || '',
       mobile: formData.mobile || '',

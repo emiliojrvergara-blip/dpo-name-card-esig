@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext'
 import DpoLogo from '../assets/DpoLogo'
 import { resizePhoto } from '../utils/photoResize'
 import * as XLSX from 'xlsx'
+import { downloadEmployeeQR } from '../utils/qrDownload'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -30,22 +31,22 @@ const TABS = [
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 function EmpIcon({ active }) {
-  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
     <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx={9} cy={7} r={4}/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
   </svg>
 }
 function SettingsIcon({ active }) {
-  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
     <circle cx={12} cy={12} r={3}/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
   </svg>
 }
 function StatsIcon({ active }) {
-  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
     <path d="M18 20V10M12 20V4M6 20v-6"/>
   </svg>
 }
 function AdminIcon({ active }) {
-  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : C.textTertiary} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
   </svg>
 }
@@ -77,7 +78,7 @@ function TabBar({ tabs, activeTab, onChange }) {
             borderRadius: 14, cursor: 'pointer', transition: 'all 0.2s',
           }}>
             <Icon active={active} />
-            <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? C.blue : C.textTertiary }}>{label}</span>
+            <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? C.blue : '#6e6e73' }}>{label}</span>
           </button>
         )
       })}
@@ -159,13 +160,9 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
 
           {/* Identity */}
           <div style={{ fontSize: 11, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Identity</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-            {[['salutation','Salutation'],['callingName','Calling Name'],['fullName','Full Name'],['cardName','Name on Card']].map(([k,lbl]) => (
-              <div key={k}>
-                <label style={labelStyle}>{lbl}<FieldLock locked={lockedFields.includes(k)} /></label>
-                <input style={inputStyle} value={form[k]||''} onChange={e => update(k, e.target.value)} />
-              </div>
-            ))}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Name on Card<FieldLock locked={lockedFields.includes('cardName')} /></label>
+            <input style={inputStyle} value={form.cardName||''} onChange={e => update('cardName', e.target.value)} />
           </div>
 
           {/* Professional */}
@@ -251,7 +248,7 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
 
 // ── Add Employee Modal ────────────────────────────────────────────────────────
 function AddEmpModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({ fullName:'', cardName:'', email:'', position:'', division:'', mobile:'', office:'', company:'', address:'', officePhone:'' })
+  const [form, setForm] = useState({ cardName:'', email:'', position:'', division:'', mobile:'', office:'', company:'', address:'', officePhone:'' })
   const [error, setError] = useState('')
   function update(key, val) { setForm(f => ({ ...f, [key]: val })) }
   function handleSubmit(e) {
@@ -276,11 +273,7 @@ function AddEmpModal({ onClose, onAdd }) {
         {error && <div style={{ background: '#fff0f0', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#ff3b30', marginBottom: 12 }}>{error}</div>}
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div>
-              <label style={labelStyle}>Full Name *</label>
-              <input style={inputStyle} value={form.fullName} onChange={e => { update('fullName', e.target.value); if (!form.cardName) update('cardName', e.target.value) }} placeholder="John Doe" required />
-            </div>
-            <div>
+            <div style={{ gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Name on Card *</label>
               <input style={inputStyle} value={form.cardName} onChange={e => update('cardName', e.target.value)} placeholder="John Doe" required />
             </div>
@@ -659,6 +652,7 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
               </div>
               <span style={{ fontSize: 10, padding: '3px 7px', background: '#EFF2FF', color: C.blue, borderRadius: 20, fontWeight: 600, flexShrink: 0 }}>{emp.division?.split(' ')[0]}</span>
               <button onClick={() => onEdit(emp)} style={{ padding: '6px 12px', background: C.blue, color: '#fff', border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>Edit</button>
+              <button onClick={() => downloadEmployeeQR(emp)} style={{ padding: '6px 10px', background: '#EFF2FF', color: C.blue, border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>QR</button>
               <button onClick={() => setDeleteTarget(emp)} style={{ padding: '6px 10px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>Delete</button>
             </div>
           )
@@ -861,6 +855,11 @@ export default function Admin() {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" }}>
+
+      {/* Hidden logo SVG for QR canvas rendering */}
+      <div style={{ position: 'absolute', left: -9999 }}>
+        <DpoLogo height={36} dataAttr />
+      </div>
 
       {editingEmp && (
         <AdminEmpModal

@@ -53,11 +53,11 @@ function OfficePhoneIcon({ color = '#0048DC' }) {
   )
 }
 
-function LinkedInIcon({ size = 20, color = '#0A66C2' }) {
+function LinkedInIcon({ size = 20 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-      <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" />
-      <circle cx={4} cy={4} r={2} />
+    <svg width={size} height={size} viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+      <rect width="72" height="72" rx="10" fill="#0A66C2"/>
+      <path fill="#fff" d="M17.5 27.2h9.3v29.7h-9.3V27.2zm4.65-14.9a5.4 5.4 0 110 10.8 5.4 5.4 0 010-10.8zm10.5 14.9h8.9v4.1h.1c1.2-2.3 4.2-4.8 8.7-4.8 9.3 0 11 6.1 11 14.1v16.2h-9.3V42.8c0-3.4-.1-7.8-4.8-7.8-4.8 0-5.5 3.7-5.5 7.6v14.3h-9.3V27.2z"/>
     </svg>
   )
 }
@@ -225,7 +225,7 @@ export default function PublicCard() {
   }
   if (emp.toggles.linkedin && emp.social.linkedin) {
     quickBtns.push(
-      <QuickBtn key="li" href={emp.social.linkedin} bg="#0A66C2" icon={<LinkedInIcon size={22} color="#fff" />} label="LinkedIn" />
+      <QuickBtn key="li" href={emp.social.linkedin} bg="#0A66C2" icon={<LinkedInIcon size={26} />} label="LinkedIn" />
     )
   }
   emp.customButtons.forEach((btn, i) => {
@@ -335,14 +335,14 @@ export default function PublicCard() {
             )}
             {emp.officePhone && (
               <ContactRow
-                icon={<OfficePhoneIcon />}
+                icon={<PhoneIcon />}
                 label="Office Phone"
                 value={emp.officePhone}
                 href={`tel:${emp.officePhone.replace(/\s/g, '')}`}
               />
             )}
             <ContactRow
-              icon={<LinkedInIcon size={20} color="#0A66C2" />}
+              icon={<LinkedInIcon size={22} />}
               label="LinkedIn"
               value="DPO International"
               href="https://www.linkedin.com/company/dpointernational/"
