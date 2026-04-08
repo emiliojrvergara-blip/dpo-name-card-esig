@@ -2,39 +2,54 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import employeesRaw from '../data/employees.json'
 import { deriveCountry, getCountryToggles } from '../utils/countryDerive'
 
-// Seed initial employee records — merge sheet data with stored overrides from localStorage
+// Fields that can be synced from Excel — admin edits to these are lockable
+const LOCKABLE_FIELDS = [
+  'cardName', 'fullName', 'callingName', 'salutation',
+  'position', 'division', 'mobile', 'email',
+  'office', 'company', 'address', 'officePhone', 'website',
+]
+
 function buildEmployees() {
   const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
-  const fromSheet = employeesRaw.map((raw) => {
-    const id = raw.email.split('@')[0].replace(/\./g, '_')
-    const country = deriveCountry(raw.office)
-    const defaults = {
-      id,
-      salutation: raw.salutation || '',
-      callingName: raw.callingName || '',
-      fullName: raw.fullName || '',
-      cardName: raw.cardName || raw.fullName || '',
-      position: raw.position || '',
-      division: raw.division || '',
-      mobile: raw.mobile || '',
-      email: raw.email,
-      country,
-      office: raw.office || '',
-      company: raw.company || '',
-      address: raw.address || '',
-      officePhone: raw.officePhone || '',
-      photo: null,
-      toggles: getCountryToggles(country),
-      social: { whatsapp: '', line: '', wechat: '', linkedin: '' },
-      customButtons: [],
-      adminOnly: raw.email === 'info@dpointernational.com',
-    }
-    // Merge any user-saved overrides
-    return { ...defaults, ...(stored[id] || {}) }
-  })
-  // Also load manually-added employees from localStorage
+  const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
+
+  const fromSheet = employeesRaw
+    .filter(raw => {
+      const id = raw.email.split('@')[0].replace(/\./g, '_')
+      return !deletedIds.includes(id)
+    })
+    .map((raw) => {
+      const id = raw.email.split('@')[0].replace(/\./g, '_')
+      const country = deriveCountry(raw.office)
+      const defaults = {
+        id,
+        salutation: raw.salutation || '',
+        callingName: raw.callingName || '',
+        fullName: raw.fullName || '',
+        cardName: raw.cardName || raw.fullName || '',
+        position: raw.position || '',
+        division: raw.division || '',
+        mobile: raw.mobile || '',
+        email: raw.email,
+        country,
+        office: raw.office || '',
+        company: raw.company || '',
+        address: raw.address || '',
+        officePhone: raw.officePhone || '',
+        website: raw.website || '',
+        photo: null,
+        toggles: getCountryToggles(country),
+        social: { whatsapp: '', line: '', wechat: '', linkedin: '' },
+        customButtons: [],
+        adminOnly: raw.email === 'info@dpointernational.com',
+      }
+      return { ...defaults, ...(stored[id] || {}) }
+    })
+
   const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
+    .filter(emp => !deletedIds.includes(emp.id))
   const manualWithOverrides = manualList.map((emp) => ({ ...emp, ...(stored[emp.id] || {}) }))
+
   return [...fromSheet, ...manualWithOverrides]
 }
 
@@ -62,31 +77,64 @@ export function AppProvider({ children }) {
     const s = localStorage.getItem('dpo_settings')
     return s ? JSON.parse(s) : { logoUrl: null, backgroundUrl: null, logoMap: {} }
   })
+  const [adminLocks, setAdminLocks] = useState(() =>
+    JSON.parse(localStorage.getItem('dpo_admin_locks') || '{}')
+  )
 
-  // Persist settings
-  useEffect(() => {
-    localStorage.setItem('dpo_settings', JSON.stringify(settings))
-  }, [settings])
+  useEffect(() => { localStorage.setItem('dpo_settings', JSON.stringify(settings)) }, [settings])
+  useEffect(() => { localStorage.setItem('dpo_admins', JSON.stringify(admins)) }, [admins])
+  useEffect(() => { localStorage.setItem('dpo_admin_locks', JSON.stringify(adminLocks)) }, [adminLocks])
 
-  // Persist admins list
-  useEffect(() => {
-    localStorage.setItem('dpo_admins', JSON.stringify(admins))
-  }, [admins])
-
-  // Persist employee overrides (only user-editable fields)
   function saveEmployeeOverride(id, patch) {
     const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
     stored[id] = { ...stored[id], ...patch }
     localStorage.setItem('dpo_emp_overrides', JSON.stringify(stored))
-    setEmployees((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...patch } : e))
-    )
+    setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)))
   }
 
-  // Add a manually-created employee (not from spreadsheet)
+  function saveEmployeeAdminOverride(id, patch) {
+    const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
+    stored[id] = { ...stored[id], ...patch }
+    localStorage.setItem('dpo_emp_overrides', JSON.stringify(stored))
+    setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)))
+    // Lock any lockable fields that were edited
+    const newLocked = Object.keys(patch).filter(k => LOCKABLE_FIELDS.includes(k))
+    if (newLocked.length > 0) {
+      setAdminLocks(prev => ({
+        ...prev,
+        [id]: [...new Set([...(prev[id] || []), ...newLocked])],
+      }))
+    }
+  }
+
+  function deleteEmployee(id) {
+    const emp = employees.find(e => e.id === id)
+    if (!emp) return
+    if (emp.source === 'manual') {
+      const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
+      localStorage.setItem('dpo_manual_employees', JSON.stringify(manualList.filter(e => e.id !== id)))
+    }
+    const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
+    const updated = [...deletedIds, id]
+    localStorage.setItem('dpo_deleted_ids', JSON.stringify(updated))
+    setEmployees(prev => prev.filter(e => e.id !== id))
+  }
+
+  function fullReSync() {
+    // Remove all lockable-field overrides so JSON values take effect on rebuild
+    const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
+    Object.keys(stored).forEach(id => {
+      LOCKABLE_FIELDS.forEach(f => delete stored[id][f])
+      if (Object.keys(stored[id]).length === 0) delete stored[id]
+    })
+    localStorage.setItem('dpo_emp_overrides', JSON.stringify(stored))
+    localStorage.removeItem('dpo_admin_locks')
+    setAdminLocks({})
+    setEmployees(buildEmployees())
+  }
+
   function addManualEmployee(formData) {
     const id = formData.email.split('@')[0].replace(/\./g, '_')
-    // Prevent duplicates
     if (employees.find((e) => e.id === id)) {
       alert('An employee with this email already exists.')
       return false
@@ -107,6 +155,7 @@ export function AppProvider({ children }) {
       company: formData.company || '',
       address: formData.address || '',
       officePhone: formData.officePhone || '',
+      website: '',
       photo: null,
       toggles: getCountryToggles(country),
       social: { whatsapp: '', line: '', wechat: '', linkedin: '' },
@@ -114,7 +163,6 @@ export function AppProvider({ children }) {
       adminOnly: false,
       source: 'manual',
     }
-    // Persist to localStorage manual employees list
     const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
     manualList.push(newEmp)
     localStorage.setItem('dpo_manual_employees', JSON.stringify(manualList))
@@ -126,13 +174,7 @@ export function AppProvider({ children }) {
     if (password !== BLANKET_PASSWORD) return false
     const emp = employees.find((e) => e.email.toLowerCase() === email.toLowerCase())
     if (!emp && email.toLowerCase() !== 'info@dpointernational.com') return false
-
-    const sessionUser = emp || {
-      id: 'info_admin',
-      email: 'info@dpointernational.com',
-      cardName: 'DPO Admin',
-      adminOnly: true,
-    }
+    const sessionUser = emp || { id: 'info_admin', email: 'info@dpointernational.com', cardName: 'DPO Admin', adminOnly: true }
     setUser(sessionUser)
     localStorage.setItem('dpo_session', JSON.stringify(sessionUser))
     return true
@@ -152,22 +194,13 @@ export function AppProvider({ children }) {
   }
 
   return (
-    <AppContext.Provider
-      value={{
-        employees,
-        user,
-        admins,
-        settings,
-        setSettings,
-        setAdmins,
-        login,
-        logout,
-        isAdmin,
-        getEmployee,
-        saveEmployeeOverride,
-        addManualEmployee,
-      }}
-    >
+    <AppContext.Provider value={{
+      employees, user, admins, settings, adminLocks,
+      setSettings, setAdmins,
+      login, logout, isAdmin, getEmployee,
+      saveEmployeeOverride, saveEmployeeAdminOverride,
+      addManualEmployee, deleteEmployee, fullReSync,
+    }}>
       {children}
     </AppContext.Provider>
   )
