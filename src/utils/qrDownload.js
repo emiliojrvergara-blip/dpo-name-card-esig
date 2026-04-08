@@ -63,19 +63,20 @@ export async function downloadEmployeeQR(emp) {
   ctx.fillRect(x, y, CARD_W, HEADER_H)
   ctx.restore()
 
-  // Logo — try hidden PNG element first, fall back to text
-  const logoPngEl = document.querySelector('[data-logo-png]')
-  if (logoPngEl) {
+  // Logo — try DOM element first, fall back to text
+  const logoSvgEl = document.querySelector('[data-logo-svg]')
+  if (logoSvgEl) {
     await new Promise((resolve) => {
+      const svgStr = new XMLSerializer().serializeToString(logoSvgEl)
       const img = new Image()
       img.onload = () => {
         const logoH = 36
-        const logoW = img.naturalWidth * (logoH / img.naturalHeight)
+        const logoW = img.width * (logoH / img.height)
         ctx.drawImage(img, x + (CARD_W - logoW) / 2, y + (HEADER_H - logoH) / 2, logoW, logoH)
         resolve()
       }
       img.onerror = () => { drawLogoFallback(ctx, x, y); resolve() }
-      img.src = logoPngEl.src
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)))
     })
   } else {
     drawLogoFallback(ctx, x, y)
