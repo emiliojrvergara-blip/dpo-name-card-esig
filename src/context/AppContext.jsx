@@ -55,9 +55,30 @@ const ADMINS_DEFAULT = [
   'batrisyia.b@dpointernational.com',
 ]
 
-const BLANKET_PASSWORD = 'dpo12345'
+const DEFAULT_PASSWORD = 'dpo12345'
 
 const AppContext = createContext(null)
+
+// Per-user passwords: { "email@lower": "password" }
+// If a user has no entry, they use DEFAULT_PASSWORD
+function getPasswords() {
+  return JSON.parse(localStorage.getItem('dpo_passwords') || '{}')
+}
+function setPasswordForUser(email, newPassword) {
+  const passwords = getPasswords()
+  passwords[email.toLowerCase()] = newPassword
+  localStorage.setItem('dpo_passwords', JSON.stringify(passwords))
+}
+function checkPassword(email, password) {
+  const passwords = getPasswords()
+  const stored = passwords[email.toLowerCase()]
+  return password === (stored || DEFAULT_PASSWORD)
+}
+function resetPasswordToDefault(email) {
+  const passwords = getPasswords()
+  delete passwords[email.toLowerCase()]
+  localStorage.setItem('dpo_passwords', JSON.stringify(passwords))
+}
 
 export function AppProvider({ children }) {
   const [employees, setEmployees] = useState(buildEmployees)
@@ -164,7 +185,7 @@ export function AppProvider({ children }) {
   }
 
   function login(email, password) {
-    if (password !== BLANKET_PASSWORD) return false
+    if (!checkPassword(email, password)) return false
     const emp = employees.find((e) => e.email.toLowerCase() === email.toLowerCase())
     if (!emp && email.toLowerCase() !== 'info@dpointernational.com') return false
     const sessionUser = emp || { id: 'info_admin', email: 'info@dpointernational.com', cardName: 'DPO Admin', adminOnly: true }
@@ -176,6 +197,21 @@ export function AppProvider({ children }) {
   function logout() {
     setUser(null)
     localStorage.removeItem('dpo_session')
+  }
+
+  function changePassword(email, currentPass, newPass) {
+    if (!checkPassword(email, currentPass)) return { ok: false, error: 'Current password is incorrect.' }
+    if (newPass.length < 6) return { ok: false, error: 'New password must be at least 6 characters.' }
+    setPasswordForUser(email, newPass)
+    return { ok: true }
+  }
+
+  function forgotPassword(email) {
+    const emp = employees.find(e => e.email.toLowerCase() === email.toLowerCase())
+    if (!emp && email.toLowerCase() !== 'info@dpointernational.com') return { ok: false, error: 'Email not found.' }
+    resetPasswordToDefault(email)
+    // Phase 4: send actual email notification via backend
+    return { ok: true }
   }
 
   function isAdmin(email) {
@@ -191,6 +227,7 @@ export function AppProvider({ children }) {
       employees, user, admins, settings, adminLocks,
       setSettings, setAdmins,
       login, logout, isAdmin, getEmployee,
+      changePassword, forgotPassword,
       saveEmployeeOverride, saveEmployeeAdminOverride,
       addManualEmployee, deleteEmployee, fullReSync,
     }}>

@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { useApp } from '../context/AppContext'
-import DpoLogo from '../assets/DpoLogo'
+import dpoLogo from '../assets/dpo-logo.png'
 import { resizePhoto } from '../utils/photoResize'
 
 // ── Design tokens (Apple-inspired) ───────────────────────────────────────────
@@ -26,6 +26,7 @@ const TABS = [
   { id: 'profile', label: 'Profile', icon: ProfileIcon },
   { id: 'social', label: 'Social', icon: SocialIcon },
   { id: 'card', label: 'Card & QR', icon: QRIcon },
+  { id: 'account', label: 'Account', icon: AccountIcon },
 ]
 
 // ── Tab icons ─────────────────────────────────────────────────────────────────
@@ -53,26 +54,28 @@ function QRIcon({ active }) {
     </svg>
   )
 }
+function AccountIcon({ active }) {
+  return (
+    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx={12} cy={12} r={3} />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+    </svg>
+  )
+}
 
 // ── iOS-style Toggle ──────────────────────────────────────────────────────────
 function Toggle({ on, onChange }) {
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!on)}
-      style={{
-        width: 51, height: 31, borderRadius: 16, border: 'none',
-        background: on ? '#34C759' : '#e5e5ea',
-        position: 'relative', cursor: 'pointer',
-        transition: 'background 0.25s cubic-bezier(.4,0,.2,1)',
-        flexShrink: 0, padding: 0,
-      }}
-    >
+    <button type="button" onClick={() => onChange(!on)} style={{
+      width: 51, height: 31, borderRadius: 16, border: 'none',
+      background: on ? '#34C759' : '#e5e5ea',
+      position: 'relative', cursor: 'pointer',
+      transition: 'background 0.25s cubic-bezier(.4,0,.2,1)',
+      flexShrink: 0, padding: 0,
+    }}>
       <div style={{
-        position: 'absolute',
-        top: 2, left: on ? 22 : 2,
-        width: 27, height: 27, borderRadius: '50%',
-        background: '#fff',
+        position: 'absolute', top: 2, left: on ? 22 : 2,
+        width: 27, height: 27, borderRadius: '50%', background: '#fff',
         boxShadow: '0 2px 6px rgba(0,0,0,0.22)',
         transition: 'left 0.25s cubic-bezier(.4,0,.2,1)',
       }} />
@@ -80,7 +83,22 @@ function Toggle({ on, onChange }) {
   )
 }
 
-// ── Grouped section (iOS Settings style) ──────────────────────────────────────
+// ── Shared styles ─────────────────────────────────────────────────────────────
+const inputStyle = {
+  width: '100%', padding: '10px 12px', borderRadius: 10,
+  border: '1px solid rgba(0,0,0,0.12)', fontSize: 15, outline: 'none',
+  background: '#f5f5f7', fontFamily: 'inherit', color: C.textPrimary,
+  boxSizing: 'border-box',
+}
+const readOnlyInputStyle = {
+  ...inputStyle, color: C.textTertiary, cursor: 'default',
+}
+const labelStyle = {
+  display: 'block', fontSize: 11, fontWeight: 600,
+  color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4,
+}
+
+// ── Grouped section (for social tab) ─────────────────────────────────────────
 function Section({ label, children, style }) {
   return (
     <div style={{ marginBottom: 28, ...style }}>
@@ -96,37 +114,12 @@ function Section({ label, children, style }) {
   )
 }
 
-function FormRow({ label, last, children }) {
-  return (
-    <div style={{
-      padding: '13px 16px',
-      borderBottom: last ? 'none' : `1px solid ${C.divider}`,
-      display: 'flex', flexDirection: 'column', gap: 4,
-    }}>
-      <div style={{ fontSize: 12, color: C.textSecondary, fontWeight: 500 }}>{label}</div>
-      {children}
-    </div>
-  )
+// ── WhatsApp helper ───────────────────────────────────────────────────────────
+function cleanMobileForWa(mobile) {
+  return (mobile || '').replace(/[\s\-()]/g, '').replace(/^\+/, '')
 }
 
-function AppleInput({ value, onChange, placeholder, type = 'text', readOnly }) {
-  return (
-    <input
-      type={type}
-      value={value || ''}
-      onChange={onChange}
-      placeholder={placeholder}
-      readOnly={readOnly}
-      style={{
-        width: '100%', border: 'none', outline: 'none',
-        fontSize: 15, color: readOnly ? C.textTertiary : C.textPrimary,
-        background: 'transparent', padding: 0, fontFamily: 'inherit',
-      }}
-    />
-  )
-}
-
-// ── My Profile Tab ────────────────────────────────────────────────────────────
+// ── My Profile Tab ───────────────────────────────────────────────────────────
 function ProfileTab({ emp, onSave }) {
   const [form, setForm] = useState({
     cardName: emp.cardName, position: emp.position,
@@ -186,27 +179,49 @@ function ProfileTab({ emp, onSave }) {
         )}
       </div>
 
-      <Section label="Personal Info">
-        {['cardName', 'position', 'division', 'mobile'].map((key, i) => {
-          const labels = { cardName: 'Name on Card', position: 'Position', division: 'Division', mobile: 'Mobile' }
-          return (
-            <FormRow key={key} label={labels[key]} last={i === 3}>
-              <AppleInput value={form[key]} onChange={e => update(key, e.target.value)} type={key === 'mobile' ? 'tel' : 'text'} />
-            </FormRow>
-          )
-        })}
-      </Section>
+      {/* Personal Info — editable fields */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10, paddingLeft: 4 }}>
+          Personal Info
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={labelStyle}>Name on Card</label>
+            <input style={inputStyle} value={form.cardName || ''} onChange={e => update('cardName', e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Position</label>
+            <input style={inputStyle} value={form.position || ''} onChange={e => update('position', e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Division</label>
+            <input style={inputStyle} value={form.division || ''} onChange={e => update('division', e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>Mobile</label>
+            <input style={inputStyle} value={form.mobile || ''} onChange={e => update('mobile', e.target.value)} type="tel" />
+          </div>
+        </div>
+      </div>
 
-      <Section label="Company Info">
-        {[
-          ['Email', emp.email], ['Office', emp.office], ['Company', emp.company],
-          ['Country', emp.country], ['Office Phone', emp.officePhone], ['Address', emp.address],
-        ].map(([label, val], i, arr) => (
-          <FormRow key={label} label={label} last={i === arr.length - 1}>
-            <div style={{ fontSize: 15, color: C.textTertiary, lineHeight: 1.5 }}>{val || '—'}</div>
-          </FormRow>
-        ))}
-      </Section>
+      {/* Company Info — read-only */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10, paddingLeft: 4 }}>
+          Company Info
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {[
+            ['Email', emp.email], ['Office', emp.office], ['Company', emp.company],
+            ['Country', emp.country], ['Office Phone', emp.officePhone],
+            ['Website', emp.website], ['Address', emp.address],
+          ].map(([lbl, val]) => (
+            <div key={lbl}>
+              <label style={labelStyle}>{lbl}</label>
+              <input style={readOnlyInputStyle} value={val || '—'} readOnly />
+            </div>
+          ))}
+        </div>
+      </div>
 
       <button type="submit" style={{
         width: '100%', padding: '16px 0', background: saved ? '#34C759' : C.blue,
@@ -220,19 +235,46 @@ function ProfileTab({ emp, onSave }) {
   )
 }
 
-// ── Social & Links Tab ────────────────────────────────────────────────────────
+// ── Social & Links Tab ───────────────────────────────────────────────────────
 const SOCIAL_CONFIG = [
-  { key: 'whatsapp', label: 'WhatsApp', color: '#25D366', placeholder: '+60142275101' },
+  { key: 'whatsapp', label: 'WhatsApp', color: '#25D366', placeholder: 'https://wa.me/60123456789' },
   { key: 'line', label: 'Line', color: '#06C755', placeholder: 'Line ID' },
-  { key: 'wechat', label: 'WeChat', color: '#07C160', placeholder: 'WeChat ID' },
   { key: 'linkedin', label: 'LinkedIn', color: '#0A66C2', placeholder: 'https://linkedin.com/in/yourprofile' },
 ]
+
+const MAX_PDF_SIZE = 2 * 1024 * 1024 // 2MB for Phase 2
 
 function SocialTab({ emp, onSave }) {
   const [toggles, setToggles] = useState({ ...emp.toggles })
   const [social, setSocial] = useState({ ...emp.social })
   const [customButtons, setCustomButtons] = useState([...emp.customButtons])
   const [saved, setSaved] = useState(false)
+
+  function handleWhatsAppToggle(v) {
+    setToggles(t => ({ ...t, whatsapp: v }))
+    if (v && !social.whatsapp && emp.mobile) {
+      const clean = cleanMobileForWa(emp.mobile)
+      if (clean) setSocial(s => ({ ...s, whatsapp: `https://wa.me/${clean}` }))
+    }
+  }
+
+  function handlePdfUpload(e, btnIndex) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > MAX_PDF_SIZE) {
+      alert('PDF must be under 2MB for now. Larger files (up to 40MB) will be supported after server deployment.')
+      e.target.value = ''
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setCustomButtons(b => b.map((btn, idx) =>
+        idx === btnIndex ? { ...btn, type: 'pdf', value: ev.target.result, fileName: file.name } : btn
+      ))
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   function handleSave(e) {
     e.preventDefault()
@@ -260,12 +302,15 @@ function SocialTab({ emp, onSave }) {
                 <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
                 <span style={{ fontSize: 16, color: C.textPrimary, fontWeight: 500 }}>{label}</span>
               </div>
-              <Toggle on={toggles[key]} onChange={v => setToggles(t => ({ ...t, [key]: v }))} />
+              <Toggle
+                on={toggles[key]}
+                onChange={key === 'whatsapp' ? handleWhatsAppToggle : v => setToggles(t => ({ ...t, [key]: v }))}
+              />
             </div>
             {toggles[key] && (
               <div style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? `1px solid ${C.divider}` : 'none', background: '#fafafa' }}>
                 <input
-                  style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: C.textPrimary, background: 'transparent', fontFamily: 'inherit' }}
+                  style={{ ...inputStyle, background: 'transparent', border: 'none' }}
                   value={social[key] || ''}
                   onChange={e => setSocial(s => ({ ...s, [key]: e.target.value }))}
                   placeholder={placeholder}
@@ -276,6 +321,7 @@ function SocialTab({ emp, onSave }) {
         ))}
       </Section>
 
+      {/* Custom Buttons */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 4, marginBottom: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -295,22 +341,71 @@ function SocialTab({ emp, onSave }) {
           <div style={{ background: C.surface, borderRadius: 16, overflow: 'hidden', boxShadow: C.shadow }}>
             {customButtons.map((btn, i) => (
               <div key={i} style={{ padding: '14px 16px', borderBottom: i < customButtons.length - 1 ? `1px solid ${C.divider}` : 'none' }}>
+                {/* Label row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 12, color: C.textSecondary, marginBottom: 4 }}>
                       Label <span style={{ color: btn.title.length >= 18 ? '#ff3b30' : C.textTertiary }}>{btn.title.length}/20</span>
                     </div>
-                    <input style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: C.textPrimary, background: 'transparent', fontFamily: 'inherit' }}
+                    <input style={{ ...inputStyle, background: 'transparent', border: 'none', padding: 0, fontSize: 15 }}
                       value={btn.title} onChange={e => setCustomButtons(b => b.map((x, idx) => idx === i ? { ...x, title: e.target.value.slice(0, 20) } : x))}
                       placeholder="e.g. Brochure" maxLength={20} />
                   </div>
                   <button type="button" onClick={() => setCustomButtons(b => b.filter((_, idx) => idx !== i))} style={{ width: 28, height: 28, borderRadius: '50%', background: '#ff3b30', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>✕</button>
                 </div>
+
                 <div style={{ height: 1, background: C.divider, margin: '0 0 10px' }} />
-                <div style={{ fontSize: 12, color: C.textSecondary, marginBottom: 4 }}>URL</div>
-                <input style={{ width: '100%', border: 'none', outline: 'none', fontSize: 15, color: C.textPrimary, background: 'transparent', fontFamily: 'inherit' }}
-                  value={btn.value} onChange={e => setCustomButtons(b => b.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x))}
-                  placeholder="https://" type="url" />
+
+                {/* Type selector */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  {['url', 'pdf'].map(t => (
+                    <button key={t} type="button" onClick={() => setCustomButtons(b => b.map((x, idx) => idx === i ? { ...x, type: t, value: t !== x.type ? '' : x.value, fileName: t !== x.type ? '' : x.fileName } : x))}
+                      style={{
+                        padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        background: btn.type === t ? C.blue : '#f0f0f2',
+                        color: btn.type === t ? '#fff' : C.textSecondary,
+                        border: 'none',
+                      }}>
+                      {t === 'url' ? 'Link' : 'PDF'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* URL input or PDF upload */}
+                {btn.type === 'url' ? (
+                  <>
+                    <div style={{ fontSize: 12, color: C.textSecondary, marginBottom: 4 }}>URL</div>
+                    <input style={{ ...inputStyle, background: 'transparent', border: 'none', padding: 0, fontSize: 15 }}
+                      value={btn.value || ''} onChange={e => setCustomButtons(b => b.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x))}
+                      placeholder="https://" type="url" />
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, color: C.textSecondary, marginBottom: 6 }}>PDF File <span style={{ color: C.textTertiary, fontWeight: 400 }}>(max 2MB)</span></div>
+                    {btn.value ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        <span style={{ fontSize: 13, color: C.textPrimary, flex: 1 }}>{btn.fileName || 'Uploaded PDF'}</span>
+                        <button type="button" onClick={() => setCustomButtons(b => b.map((x, idx) => idx === i ? { ...x, value: '', fileName: '' } : x))}
+                          style={{ fontSize: 12, color: '#ff3b30', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Remove</button>
+                      </div>
+                    ) : (
+                      <label style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '8px 16px', background: '#EFF2FF', color: C.blue,
+                        borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}>
+                        <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                        </svg>
+                        Upload PDF
+                        <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => handlePdfUpload(e, i)} />
+                      </label>
+                    )}
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -329,7 +424,7 @@ function SocialTab({ emp, onSave }) {
   )
 }
 
-// ── My Card & QR Tab ──────────────────────────────────────────────────────────
+// ── My Card & QR Tab ─────────────────────────────────────────────────────────
 function CardQRTab({ emp }) {
   const [copied, setCopied] = useState(false)
   const cardUrl = `${window.location.origin}${window.location.pathname}#/card/${emp.id}`
@@ -353,126 +448,74 @@ function CardQRTab({ emp }) {
     } else { alert('NFC not supported on this device.') }
   }
 
-  // ── Styled QR Card Download ─────────────────────────────────────────────────
   function downloadQR() {
     const svgEl = document.getElementById('qr-svg')
     if (!svgEl) return
 
-    const cardW = 480
-    const cardH = 640
-    const margin = 40
-    const borderRadius = 24
-    const headerH = 100
-    const qrSize = 240
-
+    const cardW = 480, cardH = 640, margin = 40, borderRadius = 24, headerH = 100, qrSize = 240
     const canvas = document.createElement('canvas')
     canvas.width = cardW + margin * 2
     canvas.height = cardH + margin * 2
     const ctx = canvas.getContext('2d')
-
-    // White background
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+    const x = margin, y = margin
 
-    const x = margin
-    const y = margin
-
-    // Card outline (rounded rect)
-    ctx.strokeStyle = C.blue
-    ctx.lineWidth = 2.5
-    roundRect(ctx, x, y, cardW, cardH, borderRadius)
-    ctx.stroke()
-
-    // Clip inside card for blue header
+    ctx.strokeStyle = C.blue; ctx.lineWidth = 2.5
+    roundRect(ctx, x, y, cardW, cardH, borderRadius); ctx.stroke()
     ctx.save()
-    roundRect(ctx, x, y, cardW, cardH, borderRadius)
-    ctx.clip()
-
-    // Blue header
-    ctx.fillStyle = C.blue
-    ctx.fillRect(x, y, cardW, headerH)
-
+    roundRect(ctx, x, y, cardW, cardH, borderRadius); ctx.clip()
+    ctx.fillStyle = C.blue; ctx.fillRect(x, y, cardW, headerH)
     ctx.restore()
 
-    // DPO logo on header (white text "dpo INTERNATIONAL")
-    // Draw the SVG logo onto the header
-    const logoSvg = document.querySelector('[data-logo-svg]')
-    if (logoSvg) {
-      const svgStr = new XMLSerializer().serializeToString(logoSvg)
+    // Logo — use hidden PNG element
+    const logoPng = document.querySelector('[data-logo-png]')
+    if (logoPng) {
       const logoImg = new Image()
       logoImg.onload = () => {
-        const logoH = 36
-        const logoW = logoImg.width * (logoH / logoImg.height)
+        const logoH = 36, logoW = logoImg.naturalWidth * (logoH / logoImg.naturalHeight)
         ctx.drawImage(logoImg, x + (cardW - logoW) / 2, y + (headerH - logoH) / 2, logoW, logoH)
         finishDraw()
       }
-      logoImg.onerror = () => {
-        drawLogoText()
-        finishDraw()
-      }
-      logoImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)))
-    } else {
-      drawLogoText()
-      finishDraw()
-    }
+      logoImg.onerror = () => { drawLogoText(); finishDraw() }
+      logoImg.src = logoPng.src
+    } else { drawLogoText(); finishDraw() }
 
     function drawLogoText() {
-      ctx.fillStyle = '#ffffff'
-      ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, sans-serif'
-      ctx.textAlign = 'center'
+      ctx.fillStyle = '#ffffff'; ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, sans-serif'; ctx.textAlign = 'center'
       ctx.fillText('dpo', x + cardW / 2, y + 50)
       ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif'
-      ctx.letterSpacing = '3px'
       ctx.fillText('INTERNATIONAL', x + cardW / 2, y + 70)
     }
 
     function finishDraw() {
-      // "Scan for my" text
-      ctx.fillStyle = C.textPrimary
-      ctx.textAlign = 'center'
+      ctx.fillStyle = C.textPrimary; ctx.textAlign = 'center'
       ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, sans-serif'
       ctx.fillText('Scan for my', x + cardW / 2, y + headerH + 52)
-
-      // "Digital Business Card" text
       ctx.fillText('Digital Business Card', x + cardW / 2, y + headerH + 82)
-
-      // QR code
       const svgData = new XMLSerializer().serializeToString(svgEl)
       const qrImg = new Image()
       qrImg.onload = () => {
-        const qrX = x + (cardW - qrSize) / 2
-        const qrY = y + headerH + 108
+        const qrX = x + (cardW - qrSize) / 2, qrY = y + headerH + 108
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
-
-        // Employee name
         ctx.fillStyle = C.textPrimary
         ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif'
         ctx.textAlign = 'center'
         ctx.fillText(emp.cardName, x + cardW / 2, qrY + qrSize + 50)
-
-        // Download
         const a = document.createElement('a')
         a.download = `${emp.cardName.replace(/\s+/g, '_')}_QR.png`
-        a.href = canvas.toDataURL('image/png')
-        a.click()
+        a.href = canvas.toDataURL('image/png'); a.click()
       }
       qrImg.src = 'data:image/svg+xml;base64,' + btoa(svgData)
     }
   }
 
-  // Rounded rect helper
   function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath()
-    ctx.moveTo(x + r, y)
-    ctx.lineTo(x + w - r, y)
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-    ctx.lineTo(x + w, y + h - r)
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-    ctx.lineTo(x + r, y + h)
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-    ctx.lineTo(x, y + r)
-    ctx.quadraticCurveTo(x, y, x + r, y)
-    ctx.closePath()
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y)
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r); ctx.lineTo(x + w, y + h - r)
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h)
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r)
+    ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath()
   }
 
   const shareActions = [
@@ -490,9 +533,9 @@ function CardQRTab({ emp }) {
 
   return (
     <div style={{ paddingTop: 8 }}>
-      {/* Hidden SVG for logo rendering on canvas */}
+      {/* Hidden PNG logo for canvas rendering */}
       <div style={{ position: 'absolute', left: -9999 }}>
-        <DpoLogo height={36} dataAttr />
+        <img data-logo-png="true" src={dpoLogo} alt="" style={{ height: 36 }} />
       </div>
 
       {/* QR Card */}
@@ -504,7 +547,6 @@ function CardQRTab({ emp }) {
         <div style={{ fontSize: 12, color: C.textTertiary, wordBreak: 'break-all' }}>{cardUrl}</div>
       </div>
 
-      {/* Download QR */}
       <button onClick={downloadQR} style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         width: '100%', padding: '15px 0', marginBottom: 12,
@@ -534,7 +576,6 @@ function CardQRTab({ emp }) {
         ))}
       </div>
 
-      {/* Preview card */}
       <a href={`#/card/${emp.id}`} target="_blank" rel="noopener noreferrer" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
         width: '100%', padding: '15px 0', marginBottom: 40,
@@ -550,38 +591,101 @@ function CardQRTab({ emp }) {
   )
 }
 
-// ── Top Tab Bar ───────────────────────────────────────────────────────────────
+// ── Account Tab ──────────────────────────────────────────────────────────────
+function AccountTab({ emp }) {
+  const { changePassword } = useApp()
+  const [currentPass, setCurrentPass] = useState('')
+  const [newPass, setNewPass] = useState('')
+  const [confirmPass, setConfirmPass] = useState('')
+  const [msg, setMsg] = useState(null)
+
+  function handleChangePassword(e) {
+    e.preventDefault()
+    setMsg(null)
+    if (newPass !== confirmPass) { setMsg({ type: 'error', text: 'New passwords do not match.' }); return }
+    const result = changePassword(emp.email, currentPass, newPass)
+    if (result.ok) {
+      setMsg({ type: 'success', text: 'Password changed successfully.' })
+      setCurrentPass(''); setNewPass(''); setConfirmPass('')
+    } else {
+      setMsg({ type: 'error', text: result.error })
+    }
+  }
+
+  return (
+    <div style={{ paddingTop: 8 }}>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10, paddingLeft: 4 }}>
+          Change Password
+        </div>
+        <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>
+          {msg && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 10, marginBottom: 16, fontSize: 13,
+              background: msg.type === 'success' ? '#ecfdf5' : '#fff0f0',
+              color: msg.type === 'success' ? '#059669' : '#ff3b30',
+              border: msg.type === 'success' ? '1px solid #a7f3d0' : '1px solid #fecaca',
+            }}>
+              {msg.text}
+            </div>
+          )}
+          <form onSubmit={handleChangePassword}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={labelStyle}>Current Password</label>
+                <input style={inputStyle} type="password" value={currentPass} onChange={e => setCurrentPass(e.target.value)} required />
+              </div>
+              <div>
+                <label style={labelStyle}>New Password</label>
+                <input style={inputStyle} type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Min 6 characters" required />
+              </div>
+              <div>
+                <label style={labelStyle}>Confirm New Password</label>
+                <input style={inputStyle} type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} required />
+              </div>
+            </div>
+            <button type="submit" style={{
+              marginTop: 18, width: '100%', padding: '14px 0',
+              background: C.blue, border: 'none', borderRadius: 14,
+              color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0,72,220,0.3)',
+            }}>
+              Update Password
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>
+        <div style={{ fontSize: 13, color: C.textTertiary, lineHeight: 1.6 }}>
+          Your email: <strong style={{ color: C.textPrimary }}>{emp.email}</strong>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Top Tab Bar ──────────────────────────────────────────────────────────────
 function TabBar({ tabs, activeTab, onChange }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'center', gap: 6,
-      background: C.surface,
-      borderBottom: `1px solid ${C.border}`,
+      background: C.surface, borderBottom: `1px solid ${C.border}`,
       padding: '10px 16px 12px',
     }}>
       {tabs.map(({ id, label, icon: Icon }) => {
         const active = activeTab === id
         return (
-          <button
-            key={id}
-            onClick={() => onChange(id)}
-            style={{
-              flex: 1, maxWidth: 130,
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-              padding: '10px 8px 10px',
-              background: active ? 'rgba(0,72,220,0.08)' : 'transparent',
-              border: active ? `1.5px solid rgba(0,72,220,0.25)` : '1.5px solid transparent',
-              borderRadius: 14,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-            }}
-          >
+          <button key={id} onClick={() => onChange(id)} style={{
+            flex: 1, maxWidth: 130,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+            padding: '10px 8px 10px',
+            background: active ? 'rgba(0,72,220,0.08)' : 'transparent',
+            border: active ? `1.5px solid rgba(0,72,220,0.25)` : '1.5px solid transparent',
+            borderRadius: 14, cursor: 'pointer', transition: 'all 0.2s',
+          }}>
             <Icon active={active} />
-            <span style={{
-              fontSize: 12, fontWeight: active ? 700 : 500,
-              color: active ? C.blue : '#6e6e73',
-              letterSpacing: '-0.01em',
-            }}>
+            <span style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? C.blue : '#6e6e73', letterSpacing: '-0.01em' }}>
               {label}
             </span>
           </button>
@@ -591,7 +695,7 @@ function TabBar({ tabs, activeTab, onChange }) {
   )
 }
 
-// ── Dashboard Shell ───────────────────────────────────────────────────────────
+// ── Dashboard Shell ──────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user, logout, saveEmployeeOverride, isAdmin, employees } = useApp()
   const navigate = useNavigate()
@@ -611,13 +715,11 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: C.bg, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif" }}>
 
-      {/* Sidebar backdrop */}
       {sidebarOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 40, backdropFilter: 'blur(2px)' }}
           onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Minimal sidebar (only for Admin Panel + Sign Out) */}
       <aside style={{
         width: 280, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)',
         borderRight: `1px solid ${C.border}`,
@@ -625,15 +727,13 @@ export default function Dashboard() {
         position: 'fixed', top: 0, left: sidebarOpen ? 0 : -280, bottom: 0,
         zIndex: 50, transition: 'left 0.28s cubic-bezier(.4,0,.2,1)',
       }}>
-        {/* Header with logo */}
         <div style={{ padding: '28px 20px 20px', borderBottom: `1px solid ${C.divider}` }}>
-          <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 14 }}>
-            <DpoLogo height={28} />
+          <div style={{ background: `linear-gradient(135deg, ${C.blue}, ${C.darkBlue})`, borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 14 }}>
+            <img src={dpoLogo} alt="DPO International" style={{ height: 28, objectFit: 'contain' }} />
           </div>
           <div style={{ fontSize: 12, color: C.textTertiary, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Digital Name Card</div>
         </div>
 
-        {/* User info */}
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.divider}`, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 12,
@@ -651,17 +751,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Sidebar actions */}
         <nav style={{ flex: 1, padding: '12px 10px' }}>
           {showAdmin && (
-            <button
-              onClick={() => { setSidebarOpen(false); navigate('/admin') }}
-              style={{
-                width: '100%', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
-                background: 'rgba(0,72,220,0.06)', border: 'none', borderRadius: 12,
-                color: C.blue, fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
-              }}
-            >
+            <button onClick={() => { setSidebarOpen(false); navigate('/admin') }} style={{
+              width: '100%', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(0,72,220,0.06)', border: 'none', borderRadius: 12,
+              color: C.blue, fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+            }}>
               <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
@@ -670,7 +766,6 @@ export default function Dashboard() {
           )}
         </nav>
 
-        {/* Sign out */}
         <div style={{ padding: '10px 10px 24px', borderTop: `1px solid ${C.divider}` }}>
           <button onClick={handleLogout} style={{
             width: '100%', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10,
@@ -685,7 +780,6 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* Top bar */}
       <div style={{
         height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 16px',
@@ -702,14 +796,13 @@ export default function Dashboard() {
         <div style={{ width: 32 }} />
       </div>
 
-      {/* Tab bar */}
       <TabBar tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Content */}
       <div style={{ padding: '0 16px', maxWidth: 540, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {activeTab === 'profile' && <ProfileTab emp={emp} onSave={handleSave} />}
         {activeTab === 'social' && <SocialTab emp={emp} onSave={handleSave} />}
         {activeTab === 'card' && <CardQRTab emp={emp} />}
+        {activeTab === 'account' && <AccountTab emp={emp} />}
       </div>
     </div>
   )

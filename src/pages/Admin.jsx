@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import DpoLogo from '../assets/DpoLogo'
+import dpoLogo from '../assets/dpo-logo.png'
 import { resizePhoto } from '../utils/photoResize'
 import * as XLSX from 'xlsx'
 import { downloadEmployeeQR } from '../utils/qrDownload'
@@ -224,7 +224,7 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
           {/* Social */}
           <div style={{ fontSize: 11, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Social Links</div>
           <div style={{ marginBottom: 20 }}>
-            {['whatsapp','line','wechat','linkedin'].map(k => (
+            {['whatsapp','line','linkedin'].map(k => (
               <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <label style={{ width: 72, fontSize: 12, textTransform: 'capitalize', color: C.textSecondary }}>{k}</label>
                 <input type="checkbox" checked={form.toggles[k]} onChange={e => updateToggle(k, e.target.checked)} style={{ width: 16, height: 16, accentColor: C.blue }} />
@@ -678,7 +678,7 @@ function SettingsTab({ settings, setSettings }) {
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4, color: C.textPrimary }}>Company Logo</div>
         <p style={{ fontSize: 13, color: C.textTertiary, marginBottom: 14 }}>Upload transparent PNG for regional branding.</p>
         <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, minHeight: 80 }}>
-          {settings.logoUrl ? <img src={settings.logoUrl} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} /> : <DpoLogo height={44} />}
+          {settings.logoUrl ? <img src={settings.logoUrl} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} /> : <img src={dpoLogo} alt="DPO International" style={{ height: 44, objectFit: 'contain' }} />}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <label style={{ flex: 1, padding: '10px 0', background: '#EFF2FF', color: C.blue, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
@@ -858,7 +858,7 @@ export default function Admin() {
 
       {/* Hidden logo SVG for QR canvas rendering */}
       <div style={{ position: 'absolute', left: -9999 }}>
-        <DpoLogo height={36} dataAttr />
+        <img data-logo-png="true" src={dpoLogo} alt="" style={{ height: 36 }} />
       </div>
 
       {editingEmp && (
@@ -876,7 +876,7 @@ export default function Admin() {
       <aside style={{ width: 280, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: sidebarOpen ? 0 : -280, bottom: 0, zIndex: 50, transition: 'left 0.28s cubic-bezier(.4,0,.2,1)' }}>
         <div style={{ padding: '28px 20px 20px', borderBottom: `1px solid ${C.divider}` }}>
           <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 14 }}>
-            <DpoLogo height={28} />
+            <img src={dpoLogo} alt="DPO International" style={{ height: 28, objectFit: 'contain' }} />
           </div>
           <div style={{ fontSize: 12, color: C.textTertiary, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Admin Panel</div>
         </div>
