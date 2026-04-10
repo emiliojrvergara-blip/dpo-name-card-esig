@@ -63,13 +63,13 @@ export async function downloadEmployeeQR(emp) {
   ctx.fillRect(x, y, CARD_W, HEADER_H)
   ctx.restore()
 
-  // Logo — try hidden PNG element first, fall back to text
+  // Logo — try hidden PNG element first, fall back to text (bigger logo)
   const logoPngEl = document.querySelector('[data-logo-png]')
   if (logoPngEl) {
     await new Promise((resolve) => {
       const img = new Image()
       img.onload = () => {
-        const logoH = 36
+        const logoH = 52
         const logoW = img.naturalWidth * (logoH / img.naturalHeight)
         ctx.drawImage(img, x + (CARD_W - logoW) / 2, y + (HEADER_H - logoH) / 2, logoW, logoH)
         resolve()
@@ -81,19 +81,19 @@ export async function downloadEmployeeQR(emp) {
     drawLogoFallback(ctx, x, y)
   }
 
-  // "Scan for my Digital Business Card"
+  // "Scan for my Digital Business Card" — equalized top/bottom margins
   ctx.fillStyle = '#1d1d1f'
   ctx.textAlign = 'center'
   ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, sans-serif'
-  ctx.fillText('Scan for my', x + CARD_W / 2, y + HEADER_H + 52)
-  ctx.fillText('Digital Business Card', x + CARD_W / 2, y + HEADER_H + 82)
+  ctx.fillText('Scan for my', x + CARD_W / 2, y + HEADER_H + 102)
+  ctx.fillText('Digital Business Card', x + CARD_W / 2, y + HEADER_H + 132)
 
   // QR code + name
   await new Promise((resolve) => {
     const qrImg = new Image()
     qrImg.onload = () => {
       const qrX = x + (CARD_W - QR_SIZE) / 2
-      const qrY = y + HEADER_H + 108
+      const qrY = y + HEADER_H + 158
       ctx.drawImage(qrImg, qrX, qrY, QR_SIZE, QR_SIZE)
 
       ctx.fillStyle = '#1d1d1f'

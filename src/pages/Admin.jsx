@@ -568,19 +568,39 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
         </button>
       </div>
 
-      {/* Re-sync button */}
-      <button onClick={() => setShowResync(true)} style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-        width: '100%', padding: '10px 0', marginBottom: 12,
-        background: '#fff8ed', border: `1px solid #fed7aa`,
-        borderRadius: 12, color: '#92400e', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-      }}>
-        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-        </svg>
-        Re-Sync from Excel
-      </button>
+      {/* Re-sync + Export card links row */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button onClick={() => setShowResync(true)} style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '10px 0',
+          background: '#fff8ed', border: `1px solid #fed7aa`,
+          borderRadius: 12, color: '#92400e', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        }}>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Re-Sync
+        </button>
+        <button onClick={() => {
+          const base = `${window.location.origin}${window.location.pathname}`
+          const rows = [['Name', 'Public Card Link'], ...all.map(e => [e.cardName || e.id, `${base}#/card/${e.id}`])]
+          const ws = XLSX.utils.aoa_to_sheet(rows)
+          const wb = XLSX.utils.book_new()
+          XLSX.utils.book_append_sheet(wb, ws, 'Card Links')
+          XLSX.writeFile(wb, 'DPO_Card_Links.xlsx')
+        }} style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '10px 0',
+          background: '#f0f7ff', border: `1px solid #bfdbfe`,
+          borderRadius: 12, color: '#1e40af', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        }}>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Export Card Links
+        </button>
+      </div>
 
       {/* Bulk Edit banner */}
       {selected.size > 0 && (

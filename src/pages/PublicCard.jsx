@@ -176,6 +176,14 @@ function AccentCircles() {
   )
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatDivision(division) {
+  if (!division) return ''
+  const parts = division.split(' - ')
+  return parts.length >= 2 ? parts.slice(1).join(' - ') : division
+}
+
 // ── Main PublicCard ───────────────────────────────────────────────────────────
 
 export default function PublicCard() {
@@ -259,7 +267,7 @@ export default function PublicCard() {
             }
             <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>{emp.cardName}</div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.80)', marginBottom: 3 }}>{emp.position}</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{emp.division}</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{formatDivision(emp.division)}</div>
           </div>
         </div>
 

@@ -180,11 +180,11 @@ function ProfileTab({ emp, onSave }) {
       </div>
 
       {/* Personal Info — editable fields */}
-      <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10, paddingLeft: 4 }}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, paddingLeft: 4 }}>
           Personal Info
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: C.surface, borderRadius: 16, padding: '16px', boxShadow: C.shadow, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={labelStyle}>Name on Card</label>
             <input style={inputStyle} value={form.cardName || ''} onChange={e => update('cardName', e.target.value)} />
@@ -206,10 +206,10 @@ function ProfileTab({ emp, onSave }) {
 
       {/* Company Info — read-only */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10, paddingLeft: 4 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8, paddingLeft: 4 }}>
           Company Info
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: C.surface, borderRadius: 16, padding: '16px', boxShadow: C.shadow, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
             ['Email', emp.email], ['Office', emp.office], ['Company', emp.company],
             ['Country', emp.country], ['Office Phone', emp.officePhone],
@@ -441,13 +441,6 @@ function CardQRTab({ emp }) {
   function shareEmail() {
     window.open(`mailto:?subject=My Digital Name Card&body=${encodeURIComponent('Here is my Digital Name Card: ' + cardUrl)}`, '_blank')
   }
-  async function shareNFC() {
-    if ('NDEFReader' in window) {
-      try { const w = new NDEFReader(); await w.write({ records: [{ recordType: 'url', data: cardUrl }] }); alert('Ready to tap!') }
-      catch { alert('NFC write failed. Requires Android Chrome over HTTPS.') }
-    } else { alert('NFC not supported on this device.') }
-  }
-
   function downloadQR() {
     const svgEl = document.getElementById('qr-svg')
     if (!svgEl) return
@@ -468,12 +461,12 @@ function CardQRTab({ emp }) {
     ctx.fillStyle = C.blue; ctx.fillRect(x, y, cardW, headerH)
     ctx.restore()
 
-    // Logo — use hidden PNG element
+    // Logo — use hidden PNG element (bigger logo, vertically centred in header)
     const logoPng = document.querySelector('[data-logo-png]')
     if (logoPng) {
       const logoImg = new Image()
       logoImg.onload = () => {
-        const logoH = 36, logoW = logoImg.naturalWidth * (logoH / logoImg.naturalHeight)
+        const logoH = 52, logoW = logoImg.naturalWidth * (logoH / logoImg.naturalHeight)
         ctx.drawImage(logoImg, x + (cardW - logoW) / 2, y + (headerH - logoH) / 2, logoW, logoH)
         finishDraw()
       }
@@ -489,14 +482,16 @@ function CardQRTab({ emp }) {
     }
 
     function finishDraw() {
+      // Equalized top/bottom margins: content block centred in card body (below header)
+      // Top margin (header bottom → "Scan for my" top) ≈ bottom margin (name bottom → card bottom)
       ctx.fillStyle = C.textPrimary; ctx.textAlign = 'center'
       ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, sans-serif'
-      ctx.fillText('Scan for my', x + cardW / 2, y + headerH + 52)
-      ctx.fillText('Digital Business Card', x + cardW / 2, y + headerH + 82)
+      ctx.fillText('Scan for my', x + cardW / 2, y + headerH + 102)
+      ctx.fillText('Digital Business Card', x + cardW / 2, y + headerH + 132)
       const svgData = new XMLSerializer().serializeToString(svgEl)
       const qrImg = new Image()
       qrImg.onload = () => {
-        const qrX = x + (cardW - qrSize) / 2, qrY = y + headerH + 108
+        const qrX = x + (cardW - qrSize) / 2, qrY = y + headerH + 158
         ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
         ctx.fillStyle = C.textPrimary
         ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif'
@@ -523,8 +518,6 @@ function CardQRTab({ emp }) {
       icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.558 4.122 1.532 5.858L.057 23.214a.75.75 0 00.93.93l5.356-1.475A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.967 0-3.81-.527-5.393-1.443l-.387-.232-4.014 1.107 1.106-4.013-.232-.387A9.945 9.945 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg> },
     { label: 'Email', color: C.blue, onClick: shareEmail,
       icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x={2} y={4} width={20} height={16} rx={2}/><path d="M22 7l-10 7L2 7"/></svg> },
-    { label: 'NFC Tap', color: '#5856D6', onClick: shareNFC,
-      icon: <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M20 7a9 9 0 010 10M4 7a9 9 0 000 10M8 10a3 3 0 010 4M16 10a3 3 0 000 4"/><circle cx={12} cy={12} r={1} fill="#fff" stroke="none"/></svg> },
     { label: copied ? 'Copied!' : 'Copy Link', color: copied ? '#34C759' : '#636366', onClick: copyLink,
       icon: copied
         ? <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
@@ -562,7 +555,7 @@ function CardQRTab({ emp }) {
 
       {/* Share grid */}
       <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10, paddingLeft: 4 }}>
-        Share via
+        Share My Profile Link Via
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         {shareActions.map(({ label, color, onClick, icon }) => (
@@ -656,7 +649,7 @@ function AccountTab({ emp }) {
         </div>
       </div>
 
-      <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>
+      <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow, marginBottom: 40 }}>
         <div style={{ fontSize: 13, color: C.textTertiary, lineHeight: 1.6 }}>
           Your email: <strong style={{ color: C.textPrimary }}>{emp.email}</strong>
         </div>
