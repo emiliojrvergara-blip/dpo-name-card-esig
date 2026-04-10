@@ -342,8 +342,64 @@ function AddEmpModal({ onClose, onAdd }) {
 }
 
 // ── Bulk Edit Modal ───────────────────────────────────────────────────────────
+const MAX_PDF_SIZE = 2 * 1024 * 1024
+
+function BulkCbField({ num, btn, onChange }) {
+  function handlePdf(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > MAX_PDF_SIZE) { alert('PDF must be under 2MB.'); e.target.value = ''; return }
+    const reader = new FileReader()
+    reader.onload = ev => onChange({ ...btn, type: 'pdf', value: ev.target.result, fileName: file.name })
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+  return (
+    <div style={{ background: '#f9f9fb', borderRadius: 12, padding: 12, marginBottom: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Button {num}</div>
+      <div style={{ marginBottom: 8 }}>
+        <label style={labelStyle}>Label</label>
+        <input style={inputStyle} value={btn.label} onChange={e => onChange({ ...btn, label: e.target.value.slice(0, 20) })} placeholder={`e.g. Button ${num}`} maxLength={20} />
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+        {['url', 'pdf'].map(t => (
+          <button key={t} type="button" onClick={() => onChange({ ...btn, type: t, value: '', fileName: '' })}
+            style={{ padding: '5px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none', background: btn.type === t ? C.blue : '#ebebed', color: btn.type === t ? '#fff' : C.textSecondary }}>
+            {t === 'url' ? 'Link' : 'PDF'}
+          </button>
+        ))}
+      </div>
+      {btn.type === 'url' ? (
+        <>
+          <label style={labelStyle}>URL</label>
+          <input style={inputStyle} value={btn.value} onChange={e => onChange({ ...btn, value: e.target.value })} placeholder="https://…" type="url" />
+        </>
+      ) : (
+        <>
+          <label style={labelStyle}>PDF File <span style={{ fontWeight: 400, textTransform: 'none', color: C.textTertiary }}>(max 2MB)</span></label>
+          {btn.value ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span style={{ fontSize: 12, color: C.textPrimary, flex: 1 }}>{btn.fileName || 'Uploaded PDF'}</span>
+              <button type="button" onClick={() => onChange({ ...btn, value: '', fileName: '' })} style={{ fontSize: 12, color: '#ff3b30', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Remove</button>
+            </div>
+          ) : (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#EFF2FF', color: C.blue, borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+              Upload PDF
+              <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={handlePdf} />
+            </label>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function BulkEditModal({ count, onClose, onSave }) {
-  const [form, setForm] = useState({ address:'', officePhone:'', company:'', website:'', cb1Label:'', cb1Url:'', cb2Label:'', cb2Url:'' })
+  const [form, setForm] = useState({ address:'', officePhone:'', company:'', website:'' })
+  const [cb1, setCb1] = useState({ label:'', type:'url', value:'', fileName:'' })
+  const [cb2, setCb2] = useState({ label:'', type:'url', value:'', fileName:'' })
   function update(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   function handleSave(e) {
@@ -353,10 +409,10 @@ function BulkEditModal({ count, onClose, onSave }) {
     if (form.officePhone.trim()) fields.officePhone = form.officePhone.trim()
     if (form.company.trim()) fields.company = form.company.trim()
     if (form.website.trim()) fields.website = form.website.trim()
-    const cb1 = (form.cb1Label || form.cb1Url) ? { label: form.cb1Label, url: form.cb1Url } : null
-    const cb2 = (form.cb2Label || form.cb2Url) ? { label: form.cb2Label, url: form.cb2Url } : null
-    if (Object.keys(fields).length === 0 && !cb1 && !cb2) { onClose(); return }
-    onSave({ fields, cb1, cb2 })
+    const btn1 = (cb1.label || cb1.value) ? { title: cb1.label, type: cb1.type, value: cb1.value, fileName: cb1.fileName } : null
+    const btn2 = (cb2.label || cb2.value) ? { title: cb2.label, type: cb2.type, value: cb2.value, fileName: cb2.fileName } : null
+    if (Object.keys(fields).length === 0 && !btn1 && !btn2) { onClose(); return }
+    onSave({ fields, cb1: btn1, cb2: btn2 })
     onClose()
   }
 
@@ -394,24 +450,8 @@ function BulkEditModal({ count, onClose, onSave }) {
           </div>
 
           <div style={{ fontSize: 11, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Custom Buttons (leave blank to keep each employee's existing setting)</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
-            <div>
-              <label style={labelStyle}>Button 1 Label</label>
-              <input style={inputStyle} value={form.cb1Label} onChange={e => update('cb1Label', e.target.value)} placeholder="e.g. Visit Website" />
-            </div>
-            <div>
-              <label style={labelStyle}>Button 1 URL</label>
-              <input style={inputStyle} value={form.cb1Url} onChange={e => update('cb1Url', e.target.value)} placeholder="https://…" />
-            </div>
-            <div>
-              <label style={labelStyle}>Button 2 Label</label>
-              <input style={inputStyle} value={form.cb2Label} onChange={e => update('cb2Label', e.target.value)} placeholder="e.g. Product Catalogue" />
-            </div>
-            <div>
-              <label style={labelStyle}>Button 2 URL</label>
-              <input style={inputStyle} value={form.cb2Url} onChange={e => update('cb2Url', e.target.value)} placeholder="https://…" />
-            </div>
-          </div>
+          <BulkCbField num={1} btn={cb1} onChange={setCb1} />
+          <BulkCbField num={2} btn={cb2} onChange={setCb2} />
 
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: '12px 0', background: '#f5f5f7', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: C.textSecondary }}>Cancel</button>
@@ -476,7 +516,7 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
         const existing = [...(emp.customButtons || [])]
         if (cb1) existing[0] = cb1
         if (cb2) existing[1] = cb2
-        patch.customButtons = existing
+        patch.customButtons = existing.slice(0, 2)
       }
       if (Object.keys(patch).length > 0) saveEmployeeAdminOverride(id, patch)
     })
