@@ -241,6 +241,24 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
             <button type="submit" style={{ flex: 2, padding: '12px 0', background: C.blue, border: 'none', borderRadius: 12, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Save Changes</button>
           </div>
         </form>
+
+        <a
+          href={`${window.location.pathname}#/card/${emp.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginTop: 10, width: '100%', padding: '12px 0',
+            background: C.surface, border: `1.5px solid ${C.blue}`,
+            borderRadius: 12, color: C.blue, fontSize: 14, fontWeight: 600,
+            textDecoration: 'none', boxSizing: 'border-box',
+          }}
+        >
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={C.blue} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx={12} cy={12} r={3}/>
+          </svg>
+          Preview Public Card
+        </a>
       </div>
     </div>
   )
