@@ -20,6 +20,10 @@ function buildEmployees() {
     .map((raw) => {
       const id = raw.email.split('@')[0].replace(/\./g, '_')
       const country = deriveCountry(raw.office)
+      const WA_COUNTRIES = ['Malaysia', 'Indonesia', 'Philippines', 'Sri Lanka', 'Vietnam']
+      const waDefault = WA_COUNTRIES.includes(country) && raw.mobile
+        ? `https://wa.me/${raw.mobile.replace(/[\s\-()]/g, '').replace(/^\+/, '')}`
+        : ''
       const defaults = {
         id,
         cardName: raw.cardName || raw.fullName || '',
@@ -35,7 +39,7 @@ function buildEmployees() {
         website: raw.website || '',
         photo: null,
         toggles: getCountryToggles(country),
-        social: { whatsapp: '', line: '', wechat: '', linkedin: '' },
+        social: { whatsapp: waDefault, line: '', wechat: '', linkedin: '' },
         customButtons: [],
         adminOnly: raw.email === 'info@dpointernational.com',
       }

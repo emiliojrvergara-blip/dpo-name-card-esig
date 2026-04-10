@@ -114,6 +114,16 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
   function update(key, val) { setForm(f => ({ ...f, [key]: val })) }
   function updateSocial(key, val) { setForm(f => ({ ...f, social: { ...f.social, [key]: val } })) }
   function updateToggle(key, val) { setForm(f => ({ ...f, toggles: { ...f.toggles, [key]: val } })) }
+  function handleWhatsAppToggle(checked) {
+    setForm(f => {
+      const newSocial = { ...f.social }
+      if (checked && !f.social.whatsapp && f.mobile) {
+        const clean = f.mobile.replace(/[\s\-()]/g, '').replace(/^\+/, '')
+        if (clean) newSocial.whatsapp = `https://wa.me/${clean}`
+      }
+      return { ...f, toggles: { ...f.toggles, whatsapp: checked }, social: newSocial }
+    })
+  }
   async function handlePhoto(e) {
     const file = e.target.files[0]; if (!file) return
     update('photo', await resizePhoto(file))
@@ -227,7 +237,7 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
             {['whatsapp','line','linkedin'].map(k => (
               <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <label style={{ width: 72, fontSize: 12, textTransform: 'capitalize', color: C.textSecondary }}>{k}</label>
-                <input type="checkbox" checked={form.toggles[k]} onChange={e => updateToggle(k, e.target.checked)} style={{ width: 16, height: 16, accentColor: C.blue }} />
+                <input type="checkbox" checked={form.toggles[k]} onChange={e => k === 'whatsapp' ? handleWhatsAppToggle(e.target.checked) : updateToggle(k, e.target.checked)} style={{ width: 16, height: 16, accentColor: C.blue }} />
                 <input style={{ ...inputStyle, flex: 1 }} value={form.social[k]||''} onChange={e => updateSocial(k, e.target.value)} placeholder={k === 'linkedin' ? 'https://linkedin.com/in/…' : k + ' ID'} />
               </div>
             ))}
