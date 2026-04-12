@@ -74,7 +74,10 @@ export default function Login() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <img src={dpoLogo} alt="DPO International" style={{ height: 38, objectFit: 'contain' }} />
-          <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(147,180,244,0.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+          <div style={{ marginTop: 10, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: '-0.01em' }}>
+            DPO CardShare
+          </div>
+          <div style={{ marginTop: 4, fontSize: 11, color: 'rgba(147,180,244,0.7)', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
             Digital Name Card
           </div>
         </div>

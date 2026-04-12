@@ -963,10 +963,11 @@ export default function Admin() {
       {/* Sidebar */}
       <aside style={{ width: 280, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(20px)', borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: sidebarOpen ? 0 : -280, bottom: 0, zIndex: 50, transition: 'left 0.28s cubic-bezier(.4,0,.2,1)' }}>
         <div style={{ padding: '28px 20px 20px', borderBottom: `1px solid ${C.divider}` }}>
-          <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 14 }}>
+          <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 10 }}>
             <img src={dpoLogo} alt="DPO International" style={{ height: 28, objectFit: 'contain' }} />
           </div>
-          <div style={{ fontSize: 12, color: C.textTertiary, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Admin Panel</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.01em', marginBottom: 2 }}>DPO CardShare</div>
+          <div style={{ fontSize: 11, color: C.textTertiary, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Admin Panel</div>
         </div>
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.divider}`, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #EFF2FF, #dce3ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

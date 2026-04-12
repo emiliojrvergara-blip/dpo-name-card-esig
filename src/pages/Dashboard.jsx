@@ -749,10 +749,11 @@ export default function Dashboard() {
         zIndex: 50, transition: 'left 0.28s cubic-bezier(.4,0,.2,1)',
       }}>
         <div style={{ padding: '28px 20px 20px', borderBottom: `1px solid ${C.divider}` }}>
-          <div style={{ background: `linear-gradient(135deg, ${C.blue}, ${C.darkBlue})`, borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 14 }}>
+          <div style={{ background: `linear-gradient(135deg, ${C.blue}, ${C.darkBlue})`, borderRadius: 12, padding: '10px 14px', display: 'inline-flex', marginBottom: 10 }}>
             <img src={dpoLogo} alt="DPO International" style={{ height: 28, objectFit: 'contain' }} />
           </div>
-          <div style={{ fontSize: 12, color: C.textTertiary, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Digital Name Card</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, letterSpacing: '-0.01em', marginBottom: 2 }}>DPO CardShare</div>
+          <div style={{ fontSize: 11, color: C.textTertiary, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Digital Name Card</div>
         </div>
 
         <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.divider}`, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -813,7 +814,7 @@ export default function Dashboard() {
             <path d="M3 12h18M3 6h18M3 18h18"/>
           </svg>
         </button>
-        <span style={{ fontSize: 17, fontWeight: 600, color: C.textPrimary, letterSpacing: '-0.02em' }}>My Dashboard</span>
+        <span style={{ fontSize: 17, fontWeight: 600, color: C.textPrimary, letterSpacing: '-0.02em' }}>My CardShare Dashboard</span>
         <div style={{ width: 32 }} />
       </div>
 

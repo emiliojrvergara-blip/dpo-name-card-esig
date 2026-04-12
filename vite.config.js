@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'DPO Digital Name Card',
-        short_name: 'DPO Card',
+        name: 'DPO CardShare',
+        short_name: 'DPO CardShare',
         description: 'DPO International Digital Name Card',
         theme_color: '#0048DC',
         background_color: '#ffffff',
