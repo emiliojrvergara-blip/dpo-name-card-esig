@@ -141,13 +141,98 @@ export function AppProvider({ children }) {
     setEmployees(prev => prev.filter(e => e.id !== id))
   }
 
-  function fullReSync() {
-    // Remove all lockable-field overrides so JSON values take effect on rebuild
+  // ── Light Re-Sync ────────────────────────────────────────────────────────────
+  // Adds new employees, fills only empty/null fields from Excel, removes employees
+  // no longer in Excel. Never overwrites a field that already has a value.
+  function lightReSync() {
     const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
-    Object.keys(stored).forEach(id => {
-      LOCKABLE_FIELDS.forEach(f => delete stored[id][f])
-      if (Object.keys(stored[id]).length === 0) delete stored[id]
+    const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
+    const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
+    const manualIds = new Set(manualList.map(e => e.id))
+    const excelIds = new Set(employeesRaw.map(raw => raw.email.split('@')[0].replace(/\./g, '_')))
+
+    // Remove Excel employees that are no longer in the Excel file
+    const newDeletedIds = [
+      ...deletedIds,
+      ...Object.keys(stored).filter(id => !manualIds.has(id) && !excelIds.has(id)),
+    ]
+    const uniqueDeletedIds = [...new Set(newDeletedIds)]
+    localStorage.setItem('dpo_deleted_ids', JSON.stringify(uniqueDeletedIds))
+
+    // For each Excel employee, add if new OR fill in only empty fields
+    employeesRaw.forEach(raw => {
+      const id = raw.email.split('@')[0].replace(/\./g, '_')
+      if (uniqueDeletedIds.includes(id)) return // skip explicitly deleted
+      const country = deriveCountry(raw.office)
+      const WA_COUNTRIES = ['Malaysia', 'Indonesia', 'Philippines', 'Sri Lanka', 'Vietnam']
+      const excelValues = {
+        cardName: raw.cardName || raw.fullName || '',
+        position: raw.position || '',
+        division: raw.division || '',
+        mobile: raw.mobile || '',
+        email: raw.email,
+        office: raw.office || '',
+        company: raw.company || '',
+        address: raw.address || '',
+        officePhone: raw.officePhone || '',
+        website: raw.website || '',
+      }
+      const existing = stored[id] || {}
+      const updated = { ...existing }
+      LOCKABLE_FIELDS.forEach(f => {
+        if (!updated[f]) updated[f] = excelValues[f]
+      })
+      stored[id] = updated
     })
+
+    localStorage.setItem('dpo_emp_overrides', JSON.stringify(stored))
+    setEmployees(buildEmployees())
+  }
+
+  // ── Hard Re-Sync ─────────────────────────────────────────────────────────────
+  // Overwrites all Excel-sourced fields for all employees regardless of edits.
+  // Employee-only data (photo, social, toggles, customButtons) is preserved.
+  // Adds new employees, removes employees no longer in Excel, clears admin locks.
+  function hardReSync() {
+    const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
+    const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
+    const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
+    const manualIds = new Set(manualList.map(e => e.id))
+    const excelIds = new Set(employeesRaw.map(raw => raw.email.split('@')[0].replace(/\./g, '_')))
+
+    // Rebuild deleted list: keep manual-employee deletions, remove Excel employees
+    // that are no longer in Excel, restore previously deleted Excel employees
+    const newDeletedIds = [
+      ...deletedIds.filter(id => manualIds.has(id)), // keep manually-deleted manual employees
+      ...Object.keys(stored).filter(id => !manualIds.has(id) && !excelIds.has(id)), // remove from Excel
+    ]
+    const uniqueDeletedIds = [...new Set(newDeletedIds)]
+    localStorage.setItem('dpo_deleted_ids', JSON.stringify(uniqueDeletedIds))
+
+    // Overwrite all Excel-sourced fields; preserve employee-only data
+    employeesRaw.forEach(raw => {
+      const id = raw.email.split('@')[0].replace(/\./g, '_')
+      const existing = stored[id] || {}
+      stored[id] = {
+        // Preserve employee-owned data not in the Excel
+        photo: existing.photo || null,
+        social: existing.social || { whatsapp: '', line: '', wechat: '', linkedin: '' },
+        toggles: existing.toggles || null,
+        customButtons: existing.customButtons || [],
+        // Overwrite all Excel-sourced fields unconditionally
+        cardName: raw.cardName || raw.fullName || '',
+        position: raw.position || '',
+        division: raw.division || '',
+        mobile: raw.mobile || '',
+        email: raw.email,
+        office: raw.office || '',
+        company: raw.company || '',
+        address: raw.address || '',
+        officePhone: raw.officePhone || '',
+        website: raw.website || '',
+      }
+    })
+
     localStorage.setItem('dpo_emp_overrides', JSON.stringify(stored))
     localStorage.removeItem('dpo_admin_locks')
     setAdminLocks({})
@@ -233,7 +318,7 @@ export function AppProvider({ children }) {
       login, logout, isAdmin, getEmployee,
       changePassword, forgotPassword,
       saveEmployeeOverride, saveEmployeeAdminOverride,
-      addManualEmployee, deleteEmployee, fullReSync,
+      addManualEmployee, deleteEmployee, lightReSync, hardReSync,
     }}>
       {children}
     </AppContext.Provider>

@@ -475,14 +475,14 @@ function BulkEditModal({ count, onClose, onSave }) {
 
 // ── Employees Tab ─────────────────────────────────────────────────────────────
 function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
-  const { saveEmployeeAdminOverride, deleteEmployee, fullReSync } = useApp()
+  const { saveEmployeeAdminOverride, deleteEmployee, lightReSync, hardReSync } = useApp()
   const [search, setSearch] = useState('')
   const [filterDiv, setFilterDiv] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
   const [filterOffice, setFilterOffice] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
   const [showBulkModal, setShowBulkModal] = useState(false)
-  const [showResync, setShowResync] = useState(false)
+  const [showHardResync, setShowHardResync] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [selected, setSelected] = useState(new Set())
   const [qrGenerating, setQrGenerating] = useState(false)
@@ -582,19 +582,20 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
     <div style={{ paddingTop: 12 }}>
       {showAddModal && <AddEmpModal onClose={() => setShowAddModal(false)} onAdd={onAddEmployee} />}
       {showBulkModal && <BulkEditModal count={selected.size} onClose={() => setShowBulkModal(false)} onSave={handleBulkSave} />}
-      {showResync && (
+      {showHardResync && (
         <ConfirmModal
-          title="Re-Sync from Excel"
-          message="This will overwrite all admin-edited fields for all employees with data from the Excel file. This cannot be undone. Proceed?"
-          confirmLabel="Re-Sync"
-          onClose={() => setShowResync(false)}
-          onConfirm={() => { fullReSync(); setShowResync(false) }}
+          title="⚠️ Hard Re-Sync"
+          message="Warning: This will overwrite all employee data with the latest information from the Excel file. All edits made by admins and employees will be permanently lost. Employees no longer in the Excel file will be removed. This cannot be undone. Are you sure you want to proceed?"
+          confirmLabel="Yes, Hard Re-Sync"
+          confirmStyle={{ background: '#ff3b30' }}
+          onClose={() => setShowHardResync(false)}
+          onConfirm={() => { hardReSync(); setShowHardResync(false) }}
         />
       )}
       {deleteTarget && (
         <ConfirmModal
           title="Delete Employee"
-          message={`This will permanently delete ${deleteTarget.cardName}'s profile and cannot be undone. Note: if this employee still exists in the Excel file, they will be re-added on the next scheduled sync. Proceed?`}
+          message={`This will permanently delete ${deleteTarget.cardName}'s profile. They can be restored by running a Re-Sync if they still exist in the Excel file. Proceed?`}
           confirmLabel="Delete"
           onClose={() => setDeleteTarget(null)}
           onConfirm={() => { deleteEmployee(deleteTarget.id); setDeleteTarget(null) }}
@@ -636,37 +637,51 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
         </button>
       </div>
 
-      {/* Re-sync + Export card links row */}
+      {/* Export card links */}
+      <button onClick={() => {
+        const base = `${window.location.origin}${window.location.pathname}`
+        const rows = [['Name', 'Public Card Link'], ...all.map(e => [e.cardName || e.id, `${base}#/card/${e.id}`])]
+        const ws = XLSX.utils.aoa_to_sheet(rows)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Card Links')
+        XLSX.writeFile(wb, 'DPO_Card_Links.xlsx')
+      }} style={{
+        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+        padding: '10px 0', marginBottom: 10,
+        background: '#f0f7ff', border: `1px solid #bfdbfe`,
+        borderRadius: 12, color: '#1e40af', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+      }}>
+        <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Export Card Links
+      </button>
+
+      {/* Sync buttons */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setShowResync(true)} style={{
+        <button onClick={() => { lightReSync() }} style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           padding: '10px 0',
-          background: '#fff8ed', border: `1px solid #fed7aa`,
-          borderRadius: 12, color: '#92400e', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          background: '#f0fdf4', border: `1px solid #86efac`,
+          borderRadius: 12, color: '#166534', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
           </svg>
-          Re-Sync
+          Light Re-Sync
         </button>
-        <button onClick={() => {
-          const base = `${window.location.origin}${window.location.pathname}`
-          const rows = [['Name', 'Public Card Link'], ...all.map(e => [e.cardName || e.id, `${base}#/card/${e.id}`])]
-          const ws = XLSX.utils.aoa_to_sheet(rows)
-          const wb = XLSX.utils.book_new()
-          XLSX.utils.book_append_sheet(wb, ws, 'Card Links')
-          XLSX.writeFile(wb, 'DPO_Card_Links.xlsx')
-        }} style={{
+        <button onClick={() => setShowHardResync(true)} style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           padding: '10px 0',
-          background: '#f0f7ff', border: `1px solid #bfdbfe`,
-          borderRadius: 12, color: '#1e40af', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          background: '#fff1f2', border: `1px solid #fca5a5`,
+          borderRadius: 12, color: '#991b1b', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>
           <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          Export Card Links
+          Hard Re-Sync
         </button>
       </div>
 
