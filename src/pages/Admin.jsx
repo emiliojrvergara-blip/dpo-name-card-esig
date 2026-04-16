@@ -787,7 +787,7 @@ function SettingsTab({ settings, setSettings }) {
           <label style={{ flex: 1, padding: '10px 0', background: '#EFF2FF', color: C.blue, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
             Upload PNG<input type="file" accept="image/png" style={{ display: 'none' }} onChange={e => handleFile('logoUrl', e)} />
           </label>
-          {settings.logoUrl && <button onClick={() => { setSettings(s => ({ ...s, logoUrl: null })); setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ padding: '10px 14px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reset</button>}
+          {settings.logoUrl?.startsWith('data:') && <button onClick={() => { setSettings(s => ({ ...s, logoUrl: null })); setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ padding: '10px 14px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reset</button>}
         </div>
       </div>
       <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>

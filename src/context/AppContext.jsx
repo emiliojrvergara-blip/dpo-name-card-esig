@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import employeesRaw from '../data/employees.json'
 import { deriveCountry, getCountryToggles } from '../utils/countryDerive'
+import dpoLogoDefault from '../assets/dpo-logo.png'
 
 // Fields that can be synced from Excel — admin edits to these are lockable
 const LOCKABLE_FIELDS = [
@@ -96,7 +97,12 @@ export function AppProvider({ children }) {
   })
   const [settings, setSettings] = useState(() => {
     const s = localStorage.getItem('dpo_settings')
-    return s ? JSON.parse(s) : { logoUrl: null, backgroundUrl: null, logoMap: {} }
+    const parsed = s ? JSON.parse(s) : {}
+    return {
+      logoUrl: parsed.logoUrl ?? dpoLogoDefault,
+      backgroundUrl: parsed.backgroundUrl ?? null,
+      logoMap: parsed.logoMap ?? {},
+    }
   })
   const [adminLocks, setAdminLocks] = useState(() =>
     JSON.parse(localStorage.getItem('dpo_admin_locks') || '{}')
