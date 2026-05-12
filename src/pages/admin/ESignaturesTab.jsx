@@ -45,40 +45,61 @@ function formatDivision(division) {
  * Split a raw address string into [line2, line3, line4].
  *
  * The database uses ",," as an explicit line-break separator.
- * For addresses that don't use ",,", we group comma-separated parts
- * into chunks of ~42 characters.
+ * Any segment still longer than MAX_LINE_CHARS is further split on commas.
+ * Final result is packed greedily into 3 lines.
  */
+const MAX_LINE_CHARS = 48   // ~1200px at 50px Gotham — safely fits the grey panel
+
 function splitAddressToLines(rawAddress) {
   const text = (rawAddress || '').trim()
   if (!text) return ['', '', '']
 
-  let segments
+  // Step 1: primary split on ,, separators
+  let coarseSegments
   if (text.includes(',,')) {
-    segments = text.split(',,').map(s => s.trim()).filter(Boolean)
+    coarseSegments = text.split(',,').map(s => s.trim()).filter(Boolean)
   } else {
-    // Smart comma-split: build chunks ≤ 42 chars
-    const parts = text.split(',').map(s => s.trim()).filter(Boolean)
-    segments = []
-    let current = ''
-    for (const part of parts) {
-      if (!current) {
-        current = part
-      } else if ((current + ', ' + part).length <= 42) {
-        current += ', ' + part
-      } else {
-        segments.push(current)
-        current = part
-      }
-    }
-    if (current) segments.push(current)
+    coarseSegments = [text]
   }
 
-  // Condense into exactly 3 lines
-  while (segments.length < 3) segments.push('')
-  if (segments.length > 3) {
-    segments = [segments[0], segments[1], segments.slice(2).join(', ')]
+  // Step 2: further split any segment that is still too long
+  const segments = []
+  for (const seg of coarseSegments) {
+    if (seg.length <= MAX_LINE_CHARS) {
+      segments.push(seg)
+    } else {
+      const parts = seg.split(',').map(s => s.trim()).filter(Boolean)
+      let current = ''
+      for (const part of parts) {
+        if (!current) {
+          current = part
+        } else if ((current + ', ' + part).length <= MAX_LINE_CHARS) {
+          current += ', ' + part
+        } else {
+          segments.push(current)
+          current = part
+        }
+      }
+      if (current) segments.push(current)
+    }
   }
-  return segments
+
+  // Step 3: pack into exactly 3 lines (greedy, respecting MAX_LINE_CHARS)
+  const lines = ['', '', '']
+  let li = 0
+  for (const seg of segments) {
+    if (li >= 2) {
+      lines[2] += (lines[2] ? ', ' : '') + seg
+    } else if (!lines[li]) {
+      lines[li] = seg
+    } else if ((lines[li] + ', ' + seg).length <= MAX_LINE_CHARS) {
+      lines[li] += ', ' + seg
+    } else {
+      li++
+      lines[li] = seg
+    }
+  }
+  return lines
 }
 
 /**
@@ -108,19 +129,26 @@ function employeeToSignatureInput(emp) {
   const cleanAddr = stripCompanyPrefix(emp.address || '', emp.company || '')
   const [addrLine2, addrLine3, addrLine4] = splitAddressToLines(cleanAddr)
 
+  // When an employee has their own address data, unused address slots must be
+  // set to a non-empty value so the renderer doesn't fall back to KL HQ defaults.
+  // A non-breaking space ( ) is truthy but invisible on the canvas.
+  const hasOwnAddress = !!(emp.address || emp.company)
+  const blank = hasOwnAddress ? ' ' : ''
+
   return {
     name:          emp.cardName || emp.name || '',
     position:      emp.position || '',
     division:      formatDivision(emp.division),
     mobile:        emp.mobile || '',
     email:         emp.email || '',
-    // Address block — line1 is the company name, lines 2-4 are the street address
-    address_line1: emp.company || '',
-    address_line2: addrLine2,
-    address_line3: addrLine3,
-    address_line4: addrLine4,
-    // Office phone (fall through to KL default in renderer if empty)
-    tel:           emp.officePhone || '',
+    // Address block — line1 is the company name, lines 2-4 are the street address.
+    // Unused lines get a non-breaking space to suppress KL HQ defaults.
+    address_line1: emp.company       || blank,
+    address_line2: addrLine2         || blank,
+    address_line3: addrLine3         || blank,
+    address_line4: addrLine4         || blank,
+    // Tel: use employee's own number; blank suppresses KL default for non-KL staff
+    tel:           emp.officePhone   || blank,
     // Website is always the global DPO site
     website:       'www.dpointernational.com',
     logo:          logoForCountry(country),
