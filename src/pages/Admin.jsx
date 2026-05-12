@@ -5,6 +5,7 @@ import dpoLogo from '../assets/dpo-logo.png'
 import { resizePhoto } from '../utils/photoResize'
 import * as XLSX from 'xlsx'
 import { downloadEmployeeQR } from '../utils/qrDownload'
+import ESignaturesTab from './admin/ESignaturesTab'
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -24,6 +25,7 @@ const DIVISIONS = [
 
 const TABS = [
   { id: 'employees', label: 'Employees', icon: EmpIcon },
+  { id: 'esignatures', label: 'E-Signatures', icon: SignatureIcon },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
   { id: 'stats', label: 'Stats', icon: StatsIcon },
   { id: 'admins', label: 'Admins', icon: AdminIcon },
@@ -48,6 +50,12 @@ function StatsIcon({ active }) {
 function AdminIcon({ active }) {
   return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+  </svg>
+}
+function SignatureIcon({ active }) {
+  return <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={active ? C.blue : '#6e6e73'} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 17.5c2 .5 4-1 5-3s2-5 4-5 2 3 1 5-3 4-3 4 2 .5 4 0 4-2 5-3"/>
+    <path d="M14 19l2 2 4-4"/>
   </svg>
 }
 
@@ -1026,6 +1034,7 @@ export default function Admin() {
 
       <div style={{ padding: '0 16px 40px', maxWidth: 700, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {activeTab === 'employees' && <EmployeesTab employees={employees} onEdit={setEditingEmp} onAddEmployee={addManualEmployee} adminLocks={adminLocks} />}
+        {activeTab === 'esignatures' && <ESignaturesTab employees={employees} />}
         {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} />}
         {activeTab === 'stats' && <StatsTab employees={employees} />}
         {activeTab === 'admins' && <AdminsTab admins={admins} setAdmins={setAdmins} employees={employees} />}
