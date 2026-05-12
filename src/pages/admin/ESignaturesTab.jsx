@@ -41,17 +41,90 @@ function formatDivision(division) {
   return match ? `${match[1]} Division` : division
 }
 
+/**
+ * Split a raw address string into [line2, line3, line4].
+ *
+ * The database uses ",," as an explicit line-break separator.
+ * For addresses that don't use ",,", we group comma-separated parts
+ * into chunks of ~42 characters.
+ */
+function splitAddressToLines(rawAddress) {
+  const text = (rawAddress || '').trim()
+  if (!text) return ['', '', '']
+
+  let segments
+  if (text.includes(',,')) {
+    segments = text.split(',,').map(s => s.trim()).filter(Boolean)
+  } else {
+    // Smart comma-split: build chunks ≤ 42 chars
+    const parts = text.split(',').map(s => s.trim()).filter(Boolean)
+    segments = []
+    let current = ''
+    for (const part of parts) {
+      if (!current) {
+        current = part
+      } else if ((current + ', ' + part).length <= 42) {
+        current += ', ' + part
+      } else {
+        segments.push(current)
+        current = part
+      }
+    }
+    if (current) segments.push(current)
+  }
+
+  // Condense into exactly 3 lines
+  while (segments.length < 3) segments.push('')
+  if (segments.length > 3) {
+    segments = [segments[0], segments[1], segments.slice(2).join(', ')]
+  }
+  return segments
+}
+
+/**
+ * Strip the company name from the start of an address string,
+ * because many database entries repeat the company as the first line.
+ * e.g. "PT. DPO Indonesia,, Jl. MH. Thamrin…" → "Jl. MH. Thamrin…"
+ */
+function stripCompanyPrefix(address, company) {
+  if (!address || !company) return address
+  // Normalise both to compare (ignore punctuation, case, parenthesised suffixes)
+  const norm = s => s.replace(/[().]/g, '').replace(/\s+/g, ' ').toLowerCase().trim()
+  const compNorm = norm(company)
+  const addrNorm = norm(address)
+  if (compNorm.length > 5 && addrNorm.startsWith(compNorm)) {
+    // Skip the same number of original chars as the company string is long
+    return address.slice(company.length).replace(/^[\s,]+/, '')
+  }
+  return address
+}
+
 // ── Build the payload sent to the renderer for one employee ─────────────────
 function employeeToSignatureInput(emp) {
   const country = deriveCountry(emp.office || '')
+
+  // Parse address into 3 lines (address_line2..4).
+  // Strip company prefix first to avoid duplication, since address_line1 = company.
+  const cleanAddr = stripCompanyPrefix(emp.address || '', emp.company || '')
+  const [addrLine2, addrLine3, addrLine4] = splitAddressToLines(cleanAddr)
+
   return {
-    name:     emp.cardName || emp.name || '',
-    position: emp.position || '',
-    division: formatDivision(emp.division),
-    mobile:   emp.mobile || '',
-    email:    emp.email || '',
-    logo:     logoForCountry(country),
-    _country: country,
+    name:          emp.cardName || emp.name || '',
+    position:      emp.position || '',
+    division:      formatDivision(emp.division),
+    mobile:        emp.mobile || '',
+    email:         emp.email || '',
+    // Address block — line1 is the company name, lines 2-4 are the street address
+    address_line1: emp.company || '',
+    address_line2: addrLine2,
+    address_line3: addrLine3,
+    address_line4: addrLine4,
+    // Office phone (fall through to KL default in renderer if empty)
+    tel:           emp.officePhone || '',
+    // Website is always the global DPO site
+    website:       'www.dpointernational.com',
+    logo:          logoForCountry(country),
+    _country:      country,
   }
 }
 

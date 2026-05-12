@@ -48,20 +48,6 @@ async function getTemplate(variant) {
   return img
 }
 
-// ── Field text resolution ─────────────────────────────────────────────────────
-
-function fieldText(field, employee) {
-  // Fields with hard-coded `text` (M / E / T labels) ignore the employee row
-  if (field.text != null) return field.text
-
-  // Mobile = M label + space + number; we render label and value as separate fields
-  // (see FIELDS map). So here it's pure data lookup.
-  const key = field._fieldKey
-  if (employee[key] != null && employee[key] !== '') return employee[key]
-  if (DEFAULTS[key] != null) return DEFAULTS[key]
-  return ''
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -93,7 +79,7 @@ export async function renderSignatureBlob(employee) {
   for (const [fieldKey, field] of Object.entries(FIELDS)) {
     const text = field.text != null
       ? field.text
-      : (employee[fieldKey] ?? DEFAULTS[fieldKey] ?? '')
+      : (employee[fieldKey] || DEFAULTS[fieldKey] || '')
     if (!text) continue
 
     ctx.font = `${field.size}px "${FONTS[field.font]}"`
