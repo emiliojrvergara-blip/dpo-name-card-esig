@@ -21,7 +21,7 @@ const inputStyle = {
   boxSizing: 'border-box',
 }
 
-// ── Filename helper ──────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function slugify(name) {
   return (name || 'signature')
     .replace(/[^\w\s-]/g, '')
@@ -30,27 +30,40 @@ function slugify(name) {
     .replace(/[-\s]+/g, '_') || 'signature'
 }
 
-// Strip Sdn./Bhd./Pte./Ltd. for shorter filter labels
-function shortCompany(company) {
-  if (!company) return '—'
-  return company
+/**
+ * "ADM - Administration"  →  "Administration Division"
+ * "MKT - Marketing"       →  "Marketing Division"
+ * If pattern doesn't match, return as-is.
+ */
+function formatDivision(division) {
+  if (!division) return ''
+  const match = division.match(/^[A-Z]+ - (.+)$/)
+  return match ? `${match[1]} Division` : division
 }
 
 // ── Build the payload sent to the renderer for one employee ─────────────────
 function employeeToSignatureInput(emp) {
-  const country = deriveCountry(emp.office)
+  const country = deriveCountry(emp.office || '')
   return {
-    name:     emp.cardName,
+    name:     emp.cardName || emp.name || '',
     position: emp.position || '',
-    division: emp.division || '',
+    division: formatDivision(emp.division),
     mobile:   emp.mobile || '',
     email:    emp.email || '',
     logo:     logoForCountry(country),
-    // address_line1..4, tel, website all fall through to KL HQ defaults
-    // (which is correct for every employee per the original Python tool).
     _country: country,
   }
 }
+
+// ── Empty manual form state ─────────────────────────────────────────────────
+const EMPTY_MANUAL = {
+  name: '', position: '', division: '', mobile: '', email: '', country: 'Malaysia',
+}
+
+const COUNTRIES = [
+  'Malaysia', 'Indonesia', 'Philippines', 'Thailand',
+  'China', 'Hong Kong', 'Sri Lanka', 'Vietnam',
+]
 
 // ── Tab component ────────────────────────────────────────────────────────────
 export default function ESignaturesTab({ employees }) {
@@ -59,21 +72,23 @@ export default function ESignaturesTab({ employees }) {
     [employees]
   )
 
-  // Enrich each row once with country (derived from office)
+  // Enrich with country, then reverse so newest-added (last in JSON) appears first
   const enriched = useMemo(
-    () => activeEmployees.map(e => ({ ...e, _country: deriveCountry(e.office) })),
+    () => [...activeEmployees]
+      .map(e => ({ ...e, _country: e.country || deriveCountry(e.office) }))
+      .reverse(),
     [activeEmployees]
   )
 
-  // ── Filter UI state ──────────────────────────────────────────────────────
+  // ── Filter state ──────────────────────────────────────────────────────────
   const [searchQ, setSearchQ] = useState('')
   const [filterCountry,  setFilterCountry]  = useState('All')
   const [filterCompany,  setFilterCompany]  = useState('All')
   const [filterDivision, setFilterDivision] = useState('All')
 
-  const countries  = useMemo(() => uniqueSorted(enriched.map(e => e._country)),  [enriched])
-  const companies  = useMemo(() => uniqueSorted(enriched.map(e => e.company)),   [enriched])
-  const divisions  = useMemo(() => uniqueSorted(enriched.map(e => e.division)),  [enriched])
+  const countries  = useMemo(() => uniqueSorted(enriched.map(e => e._country)), [enriched])
+  const companies  = useMemo(() => uniqueSorted(enriched.map(e => e.company)),  [enriched])
+  const divisions  = useMemo(() => uniqueSorted(enriched.map(e => e.division)), [enriched])
 
   const filtered = useMemo(() => {
     const q = searchQ.trim().toLowerCase()
@@ -89,7 +104,7 @@ export default function ESignaturesTab({ employees }) {
     })
   }, [enriched, searchQ, filterCountry, filterCompany, filterDivision])
 
-  // ── Selection state (Set of employee ids) ────────────────────────────────
+  // ── Selection state ───────────────────────────────────────────────────────
   const [selected, setSelected] = useState(() => new Set())
 
   const filteredIds = useMemo(() => filtered.map(e => e.id || e.cardName), [filtered])
@@ -115,7 +130,51 @@ export default function ESignaturesTab({ employees }) {
 
   const clearSelection = useCallback(() => setSelected(new Set()), [])
 
-  // ── Generation ────────────────────────────────────────────────────────────
+  // ── Manual entry form ─────────────────────────────────────────────────────
+  const [showManual, setShowManual] = useState(false)
+  const [manual, setManual] = useState(EMPTY_MANUAL)
+  const [manualGenerating, setManualGenerating] = useState(false)
+  const [manualError, setManualError] = useState('')
+
+  function setManualField(key, val) {
+    setManual(prev => ({ ...prev, [key]: val }))
+  }
+
+  const manualValid = manual.name && manual.position && manual.mobile && manual.email
+
+  async function handleManualGenerate() {
+    if (!manualValid) return
+    setManualGenerating(true)
+    setManualError('')
+    try {
+      const disclaimerBytes = await getDisclaimerBytes()
+      const input = {
+        name:     manual.name.trim(),
+        position: manual.position.trim(),
+        division: formatDivision(manual.division.trim()),
+        mobile:   manual.mobile.trim(),
+        email:    manual.email.trim(),
+        logo:     logoForCountry(manual.country),
+        _country: manual.country,
+      }
+      const sigBlob = await renderSignatureBlob(input)
+      const docxBlob = await buildSignatureDocxBlob(sigBlob, disclaimerBytes)
+      const url = URL.createObjectURL(docxBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${slugify(manual.name)}.docx`
+      a.click()
+      URL.revokeObjectURL(url)
+      setManual(EMPTY_MANUAL)
+      setShowManual(false)
+    } catch (err) {
+      setManualError(err.message || String(err))
+    } finally {
+      setManualGenerating(false)
+    }
+  }
+
+  // ── Batch generation ──────────────────────────────────────────────────────
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState({ done: 0, total: 0, current: '' })
   const [errors, setErrors] = useState([])
@@ -125,12 +184,11 @@ export default function ESignaturesTab({ employees }) {
     const toGenerate = filtered.filter(e => selected.has(e.id || e.cardName))
     if (toGenerate.length === 0) return
 
-    // Skip rows missing required data
     const valid = toGenerate.filter(e => e.cardName && e.position && e.mobile && e.email)
     const skipped = toGenerate.length - valid.length
 
     if (valid.length === 0) {
-      setErrors([`All ${toGenerate.length} selected rows are missing required fields (name, position, mobile, email).`])
+      setErrors([`All selected rows are missing required fields (name, position, mobile, email).`])
       return
     }
 
@@ -142,7 +200,6 @@ export default function ESignaturesTab({ employees }) {
     const zip = new JSZip()
     const errs = []
 
-    // Pre-fetch disclaimer once
     let disclaimerBytes
     try {
       disclaimerBytes = await getDisclaimerBytes()
@@ -155,17 +212,14 @@ export default function ESignaturesTab({ employees }) {
     for (let i = 0; i < valid.length; i++) {
       const emp = valid[i]
       setProgress({ done: i, total: valid.length, current: emp.cardName })
-      // Yield to the UI so the progress bar updates
-      await new Promise(r => setTimeout(r, 0))
+      await new Promise(r => setTimeout(r, 0))   // yield to UI
 
       try {
         const input = employeeToSignatureInput(emp)
         const sigBlob = await renderSignatureBlob(input)
         const docxBlob = await buildSignatureDocxBlob(sigBlob, disclaimerBytes)
         const arrBuf = await docxBlob.arrayBuffer()
-        const folder = input._country || 'Other'
-        const filename = `${folder}/${slugify(emp.cardName)}.docx`
-        zip.file(filename, arrBuf)
+        zip.file(`${input._country || 'Other'}/${slugify(emp.cardName)}.docx`, arrBuf)
       } catch (err) {
         errs.push(`${emp.cardName}: ${err.message || err}`)
       }
@@ -174,7 +228,6 @@ export default function ESignaturesTab({ employees }) {
     if (errs.length) zip.file('ERRORS.txt', errs.join('\n'))
 
     setProgress({ done: valid.length, total: valid.length, current: 'Packaging ZIP…' })
-
     const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
     const url = URL.createObjectURL(zipBlob)
     const a = document.createElement('a')
@@ -192,19 +245,90 @@ export default function ESignaturesTab({ employees }) {
   }
 
   const selectedCount = selected.size
-  const visibleSelectedCount = filteredIds.filter(id => selected.has(id)).length
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ padding: '20px 0' }}>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 4px', letterSpacing: '-0.02em' }}>
-        E-Signatures
-      </h2>
-      <p style={{ fontSize: 13, color: C.textSecondary, margin: '0 0 18px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: 0, letterSpacing: '-0.02em' }}>
+          E-Signatures
+        </h2>
+        {/* Manual entry toggle */}
+        <button
+          onClick={() => { setShowManual(v => !v); setManualError('') }}
+          style={{
+            padding: '7px 12px', borderRadius: 10, border: `1px solid ${C.border}`,
+            background: showManual ? 'rgba(0,72,220,0.08)' : C.surface,
+            color: showManual ? C.blue : C.textSecondary,
+            fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}
+        >
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Manual entry
+        </button>
+      </div>
+      <p style={{ fontSize: 13, color: C.textSecondary, margin: '0 0 14px' }}>
         Select employees, then generate one Word document (.docx) per person — packaged as a ZIP organised by country.
       </p>
 
-      {/* Filters */}
+      {/* ── Manual entry form ─────────────────────────────────────────── */}
+      {showManual && (
+        <div style={{
+          background: C.surface, borderRadius: 14, boxShadow: C.shadow,
+          padding: 16, marginBottom: 14,
+          border: `1.5px solid rgba(0,72,220,0.18)`,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 12 }}>
+            Generate for someone not in the database
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <LabeledInput label="Full name *"   value={manual.name}     onChange={v => setManualField('name', v)}     placeholder="e.g. Ahmad Razif" />
+            <LabeledInput label="Position *"    value={manual.position} onChange={v => setManualField('position', v)} placeholder="e.g. Sales Manager" />
+            <LabeledInput label="Division"      value={manual.division} onChange={v => setManualField('division', v)} placeholder="e.g. SCM - Supply Chain…" />
+            <LabeledInput label="Mobile *"      value={manual.mobile}   onChange={v => setManualField('mobile', v)}   placeholder="+6012 345 6789" />
+            <LabeledInput label="Email *"       value={manual.email}    onChange={v => setManualField('email', v)}    placeholder="name@dpointernational.com" />
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Country</div>
+              <select value={manual.country} onChange={e => setManualField('country', e.target.value)} style={{ ...inputStyle, padding: '7px 8px', fontSize: 13 }}>
+                {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          {manualError && (
+            <div style={{ fontSize: 12, color: C.danger, marginBottom: 8 }}>{manualError}</div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleManualGenerate}
+              disabled={!manualValid || manualGenerating}
+              style={{
+                flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
+                background: !manualValid || manualGenerating ? '#c7c7cc' : C.blue,
+                color: 'white', fontSize: 13, fontWeight: 600,
+                cursor: !manualValid || manualGenerating ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {manualGenerating ? 'Generating…' : 'Generate & Download'}
+            </button>
+            <button
+              onClick={() => { setManual(EMPTY_MANUAL); setManualError('') }}
+              style={{
+                padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`,
+                background: '#f5f5f7', color: C.textSecondary,
+                fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Filters ───────────────────────────────────────────────────── */}
       <div style={{ background: C.surface, borderRadius: 14, boxShadow: C.shadow, padding: 14, marginBottom: 14 }}>
         <input
           type="text"
@@ -220,16 +344,18 @@ export default function ESignaturesTab({ employees }) {
         </div>
       </div>
 
-      {/* Selection bar */}
+      {/* ── Selection bar ─────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 14px', background: C.surface, borderRadius: 12,
         boxShadow: C.shadow, marginBottom: 10, gap: 10, flexWrap: 'wrap',
       }}>
         <div style={{ fontSize: 13, color: C.textSecondary }}>
-          <strong style={{ color: C.textPrimary }}>{selectedCount}</strong> of <strong style={{ color: C.textPrimary }}>{filtered.length}</strong> selected
+          <strong style={{ color: C.textPrimary }}>{selectedCount}</strong> selected
+          {' · '}
+          <strong style={{ color: C.textPrimary }}>{filtered.length}</strong> shown
           {filtered.length !== enriched.length && (
-            <span style={{ color: C.textTertiary }}> (filtered from {enriched.length})</span>
+            <span style={{ color: C.textTertiary }}> of {enriched.length}</span>
           )}
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
@@ -244,7 +370,7 @@ export default function ESignaturesTab({ employees }) {
         </div>
       </div>
 
-      {/* Generate button */}
+      {/* ── Generate button ───────────────────────────────────────────── */}
       <button
         onClick={handleGenerate}
         disabled={generating || selectedCount === 0}
@@ -258,10 +384,10 @@ export default function ESignaturesTab({ employees }) {
       >
         {generating
           ? `Generating ${progress.done} / ${progress.total}…`
-          : `Generate ${selectedCount} e-signature${selectedCount === 1 ? '' : 's'}`}
+          : `Generate ${selectedCount > 0 ? selectedCount : ''} e-signature${selectedCount === 1 ? '' : 's'}`}
       </button>
 
-      {/* Progress bar */}
+      {/* ── Progress bar ──────────────────────────────────────────────── */}
       {generating && (
         <div style={{ marginBottom: 14 }}>
           <div style={{ width: '100%', height: 6, background: '#e5e5ea', borderRadius: 3, overflow: 'hidden' }}>
@@ -271,14 +397,12 @@ export default function ESignaturesTab({ employees }) {
             }} />
           </div>
           {progress.current && (
-            <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 6 }}>
-              {progress.current}
-            </div>
+            <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 6 }}>{progress.current}</div>
           )}
         </div>
       )}
 
-      {/* Status messages */}
+      {/* ── Status messages ────────────────────────────────────────────── */}
       {doneMessage && (
         <div style={{
           padding: 12, borderRadius: 10, marginBottom: 12,
@@ -299,7 +423,7 @@ export default function ESignaturesTab({ employees }) {
         </details>
       )}
 
-      {/* Employee list */}
+      {/* ── Employee list (newest first) ───────────────────────────────── */}
       <div style={{ background: C.surface, borderRadius: 14, boxShadow: C.shadow, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
           <div style={{ padding: 24, textAlign: 'center', color: C.textTertiary, fontSize: 14 }}>
@@ -329,17 +453,17 @@ export default function ESignaturesTab({ employees }) {
                   disabled={missingData}
                   onChange={() => toggleOne(id)}
                   onClick={e => e.stopPropagation()}
-                  style={{ width: 18, height: 18, cursor: missingData ? 'not-allowed' : 'pointer', accentColor: C.blue }}
+                  style={{ width: 18, height: 18, cursor: missingData ? 'not-allowed' : 'pointer', accentColor: C.blue, flexShrink: 0 }}
                 />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {emp.cardName || '(no name)'}
                   </div>
                   <div style={{ fontSize: 11.5, color: C.textSecondary, lineHeight: 1.3, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {emp.position || '—'} · {emp.division || '—'}
+                    {emp.position || '—'} · {formatDivision(emp.division) || '—'}
                   </div>
                   <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {emp._country} · {shortCompany(emp.company)}
+                    {emp._country} · {emp.company || '—'}
                   </div>
                   {missingData && (
                     <div style={{ fontSize: 11, color: C.danger, marginTop: 2 }}>
@@ -356,34 +480,42 @@ export default function ESignaturesTab({ employees }) {
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 function uniqueSorted(arr) {
   return [...new Set(arr.filter(Boolean))].sort()
 }
 
 const smallBtnStyle = {
-  padding: '6px 10px', borderRadius: 8, border: `1px solid ${C.border}`,
+  padding: '6px 10px', borderRadius: 8, border: `1px solid rgba(0,0,0,0.08)`,
   background: '#f5f5f7', fontSize: 12, fontWeight: 600,
-  cursor: 'pointer', color: C.textPrimary, fontFamily: 'inherit',
+  cursor: 'pointer', color: '#1d1d1f', fontFamily: 'inherit',
 }
 
 function FilterSelect({ label, value, onChange, options }) {
   return (
     <div>
-      <div style={{
-        fontSize: 10, fontWeight: 600, color: C.textTertiary,
-        textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3,
-      }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#aeaeb2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
         {label}
       </div>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{ ...inputStyle, padding: '7px 8px', fontSize: 12 }}
-      >
+      <select value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', padding: '7px 8px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', fontSize: 12, outline: 'none', background: '#f5f5f7', fontFamily: 'inherit', color: '#1d1d1f', boxSizing: 'border-box' }}>
         <option value="All">All</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
+    </div>
+  )
+}
+
+function LabeledInput({ label, value, onChange, placeholder }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#aeaeb2', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>{label}</div>
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.08)', fontSize: 13, outline: 'none', background: '#f5f5f7', fontFamily: 'inherit', color: '#1d1d1f', boxSizing: 'border-box' }}
+      />
     </div>
   )
 }

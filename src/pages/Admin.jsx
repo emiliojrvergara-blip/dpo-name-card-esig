@@ -668,28 +668,38 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
       {/* Sync buttons */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <button onClick={() => { lightReSync() }} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '10px 0',
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+          padding: '10px 8px',
           background: '#f0fdf4', border: `1px solid #86efac`,
           borderRadius: 12, color: '#166534', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>
-          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-          </svg>
-          Light Re-Sync
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            Light Re-Sync
+          </div>
+          <span style={{ fontSize: 10, fontWeight: 400, color: '#4ade80', lineHeight: 1.3, textAlign: 'center' }}>
+            Fills empty fields only, keeps your edits
+          </span>
         </button>
         <button onClick={() => setShowHardResync(true)} style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '10px 0',
+          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+          padding: '10px 8px',
           background: '#fff1f2', border: `1px solid #fca5a5`,
           borderRadius: 12, color: '#991b1b', fontSize: 13, fontWeight: 600, cursor: 'pointer',
         }}>
-          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          Hard Re-Sync
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Hard Re-Sync
+          </div>
+          <span style={{ fontSize: 10, fontWeight: 400, color: '#f87171', lineHeight: 1.3, textAlign: 'center' }}>
+            Overwrites all Excel fields, clears edits
+          </span>
         </button>
       </div>
 
