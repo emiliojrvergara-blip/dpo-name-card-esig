@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import dpoLogo from '../assets/dpo-logo.png'
+import DpoLogo from '../assets/DpoLogo'
+import dpoLogoChinaWhite from '../assets/dpo-logo-china-white.png'
 import { resizePhoto } from '../utils/photoResize'
 import * as XLSX from 'xlsx'
 import { downloadEmployeeQR } from '../utils/qrDownload'
@@ -797,15 +799,38 @@ function SettingsTab({ settings, setSettings }) {
       {saved && <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#059669', marginBottom: 16 }}>✓ Settings saved</div>}
       <div style={{ background: C.surface, borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: C.shadow }}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4, color: C.textPrimary }}>Company Logo</div>
-        <p style={{ fontSize: 13, color: C.textTertiary, marginBottom: 14 }}>Upload transparent PNG for regional branding.</p>
-        <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14, minHeight: 80 }}>
-          {settings.logoUrl ? <img src={settings.logoUrl} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} /> : <img src={dpoLogo} alt="DPO International" style={{ height: 44, objectFit: 'contain' }} />}
+        <p style={{ fontSize: 13, color: C.textTertiary, marginBottom: 16 }}>Upload a transparent PNG to override the default logo per region. Reset restores the built-in default.</p>
+
+        {/* English logo */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>English (all employees except China / Hong Kong)</div>
+          <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, minHeight: 80 }}>
+            {settings.logoUrlEnglish
+              ? <img src={settings.logoUrlEnglish} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} />
+              : <DpoLogo height={44} />}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <label style={{ flex: 1, padding: '10px 0', background: '#EFF2FF', color: C.blue, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+              Upload PNG<input type="file" accept="image/png" style={{ display: 'none' }} onChange={e => handleFile('logoUrlEnglish', e)} />
+            </label>
+            {settings.logoUrlEnglish && <button onClick={() => { setSettings(s => ({ ...s, logoUrlEnglish: null })); setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ padding: '10px 14px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reset</button>}
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <label style={{ flex: 1, padding: '10px 0', background: '#EFF2FF', color: C.blue, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
-            Upload PNG<input type="file" accept="image/png" style={{ display: 'none' }} onChange={e => handleFile('logoUrl', e)} />
-          </label>
-          {settings.logoUrl?.startsWith('data:') && <button onClick={() => { setSettings(s => ({ ...s, logoUrl: null })); setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ padding: '10px 14px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reset</button>}
+
+        {/* China logo */}
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>China / Hong Kong</div>
+          <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, minHeight: 80 }}>
+            {settings.logoUrlChina
+              ? <img src={settings.logoUrlChina} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} />
+              : <img src={dpoLogoChinaWhite} alt="DPO International" style={{ height: 44, objectFit: 'contain' }} />}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <label style={{ flex: 1, padding: '10px 0', background: '#EFF2FF', color: C.blue, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
+              Upload PNG<input type="file" accept="image/png" style={{ display: 'none' }} onChange={e => handleFile('logoUrlChina', e)} />
+            </label>
+            {settings.logoUrlChina && <button onClick={() => { setSettings(s => ({ ...s, logoUrlChina: null })); setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ padding: '10px 14px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reset</button>}
+          </div>
         </div>
       </div>
       <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>

@@ -204,10 +204,12 @@ export default function PublicCard() {
     )
   }
 
-  // Logo: admin override (per-office or global) → country default (China/HK vs English)
-  const customLogoUrl = (settings.logoMap && settings.logoMap[emp.office]) || settings.logoUrl || null
   const country = emp.country || deriveCountry(emp.office || '')
   const isChina = country === 'China' || country === 'Hong Kong'
+  // Logo priority: per-office override → region upload → built-in default
+  const perOfficeUrl = settings.logoMap?.[emp.office] || null
+  const regionUploadUrl = isChina ? (settings.logoUrlChina || null) : (settings.logoUrlEnglish || null)
+  const customLogoUrl = perOfficeUrl || regionUploadUrl
 
   // Header background
   const headerStyle = settings.backgroundUrl

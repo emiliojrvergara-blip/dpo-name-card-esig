@@ -100,6 +100,8 @@ export function AppProvider({ children }) {
     const parsed = s ? JSON.parse(s) : {}
     return {
       logoUrl: parsed.logoUrl ?? dpoLogoDefault,
+      logoUrlEnglish: parsed.logoUrlEnglish ?? null,
+      logoUrlChina: parsed.logoUrlChina ?? null,
       backgroundUrl: parsed.backgroundUrl ?? null,
       logoMap: parsed.logoMap ?? {},
     }
