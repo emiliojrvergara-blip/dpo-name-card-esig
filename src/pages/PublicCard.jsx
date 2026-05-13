@@ -2,6 +2,8 @@ import React from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import DpoLogo from '../assets/DpoLogo'
+import dpoLogoChinaWhite from '../assets/dpo-logo-china-white.png'
+import { deriveCountry } from '../utils/countryDerive'
 import { downloadVCard } from '../utils/vcard'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -202,8 +204,10 @@ export default function PublicCard() {
     )
   }
 
-  // Logo: use logoMap per office/entity, then global logoUrl, then default SVG
-  const logoUrl = (settings.logoMap && settings.logoMap[emp.office]) || settings.logoUrl || null
+  // Logo: admin override (per-office or global) → country default (China/HK vs English)
+  const customLogoUrl = (settings.logoMap && settings.logoMap[emp.office]) || settings.logoUrl || null
+  const country = emp.country || deriveCountry(emp.office || '')
+  const isChina = country === 'China' || country === 'Hong Kong'
 
   // Header background
   const headerStyle = settings.backgroundUrl
@@ -261,9 +265,11 @@ export default function PublicCard() {
         <div style={{ position: 'relative', padding: '24px 24px 48px', ...headerStyle }}>
           <AccentCircles />
           <div style={{ position: 'relative', zIndex: 2 }}>
-            {logoUrl
-              ? <img src={logoUrl} alt="DPO International" style={{ height: 44, objectFit: 'contain', marginBottom: 20 }} />
-              : <div style={{ marginBottom: 20 }}><DpoLogo height={44} /></div>
+            {customLogoUrl
+              ? <img src={customLogoUrl} alt="DPO International" style={{ height: 44, objectFit: 'contain', marginBottom: 20 }} />
+              : isChina
+                ? <img src={dpoLogoChinaWhite} alt="DPO International" style={{ height: 44, objectFit: 'contain', marginBottom: 20 }} />
+                : <div style={{ marginBottom: 20 }}><DpoLogo height={44} /></div>
             }
             <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>{emp.cardName}</div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.80)', marginBottom: 3 }}>{emp.position}</div>
