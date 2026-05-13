@@ -1,7 +1,7 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import DpoLogo from '../assets/DpoLogo'
+import dpoLogoEnglishWhite from '../assets/dpo-logo-english-white.png'
 import dpoLogoChinaWhite from '../assets/dpo-logo-china-white.png'
 import { deriveCountry } from '../utils/countryDerive'
 import { downloadVCard } from '../utils/vcard'
@@ -205,7 +205,7 @@ export default function PublicCard() {
   }
 
   const country = emp.country || deriveCountry(emp.office || '')
-  const isChina = country === 'China' || country === 'Hong Kong'
+  const isChina = country === 'China'
   // Logo priority: per-office override → region upload → built-in default
   const perOfficeUrl = settings.logoMap?.[emp.office] || null
   const regionUploadUrl = isChina ? (settings.logoUrlChina || null) : (settings.logoUrlEnglish || null)
@@ -267,12 +267,11 @@ export default function PublicCard() {
         <div style={{ position: 'relative', padding: '24px 24px 48px', ...headerStyle }}>
           <AccentCircles />
           <div style={{ position: 'relative', zIndex: 2 }}>
-            {customLogoUrl
-              ? <img src={customLogoUrl} alt="DPO International" style={{ height: 44, objectFit: 'contain', marginBottom: 20 }} />
-              : isChina
-                ? <img src={dpoLogoChinaWhite} alt="DPO International" style={{ height: 44, objectFit: 'contain', marginBottom: 20 }} />
-                : <div style={{ marginBottom: 20 }}><DpoLogo height={44} /></div>
-            }
+            <img
+              src={customLogoUrl || (isChina ? dpoLogoChinaWhite : dpoLogoEnglishWhite)}
+              alt="DPO International"
+              style={{ height: 44, objectFit: 'contain', marginBottom: 20 }}
+            />
             <div style={{ fontSize: 26, fontWeight: 700, color: '#fff', lineHeight: 1.2, marginBottom: 4 }}>{emp.cardName}</div>
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.80)', marginBottom: 3 }}>{emp.position}</div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)' }}>{formatDivision(emp.division)}</div>

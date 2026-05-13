@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import dpoLogo from '../assets/dpo-logo.png'
-import DpoLogo from '../assets/DpoLogo'
+import dpoLogoEnglishWhite from '../assets/dpo-logo-english-white.png'
 import dpoLogoChinaWhite from '../assets/dpo-logo-china-white.png'
 import { resizePhoto } from '../utils/photoResize'
 import * as XLSX from 'xlsx'
@@ -803,11 +803,9 @@ function SettingsTab({ settings, setSettings }) {
 
         {/* English logo */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>English (all employees except China / Hong Kong)</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>English (all employees except China)</div>
           <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, minHeight: 80 }}>
-            {settings.logoUrlEnglish
-              ? <img src={settings.logoUrlEnglish} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} />
-              : <DpoLogo height={44} />}
+            <img src={settings.logoUrlEnglish || dpoLogoEnglishWhite} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <label style={{ flex: 1, padding: '10px 0', background: '#EFF2FF', color: C.blue, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', textAlign: 'center' }}>
@@ -819,7 +817,7 @@ function SettingsTab({ settings, setSettings }) {
 
         {/* China logo */}
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>China / Hong Kong</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: C.textSecondary, marginBottom: 8 }}>China</div>
           <div style={{ background: 'linear-gradient(135deg, #0048DC, #002a83)', borderRadius: 14, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, minHeight: 80 }}>
             {settings.logoUrlChina
               ? <img src={settings.logoUrlChina} alt="" style={{ maxHeight: 44, objectFit: 'contain' }} />
