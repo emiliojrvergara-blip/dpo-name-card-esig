@@ -18,6 +18,9 @@ const CJK_RE = /[　-〿㐀-䶿一-鿿＀-￯]/
 // Map field.font → PingFang variant (semibold for name, regular for body/label)
 const PINGFANG = { name: 'PingFangSemibold', body: 'PingFangRegular', label: 'PingFangRegular' }
 
+// Address fields use PingFang SC for ALL characters (including Latin/numbers)
+const CHINA_PINGFANG_ONLY = new Set(['address_line1', 'address_line2', 'address_line3', 'address_line4'])
+
 /** Split a string into [{str, isChinese}, …] alternating CJK / non-CJK segments. */
 function splitMixed(text) {
   const segs = []
@@ -126,8 +129,14 @@ export async function renderSignatureBlob(employee) {
     ctx.fillStyle = COLORS[field.color]
 
     if (isChina && fieldKey !== 'website') {
-      // Per-character font switching: CJK → PingFang SC, Latin/numbers → Gotham
-      fillMixedText(ctx, String(text), field.x, field.y, field.font, field.size)
+      if (CHINA_PINGFANG_ONLY.has(fieldKey)) {
+        // Address lines: entire text in PingFang Regular (no Gotham switching)
+        ctx.font = `${field.size}px "PingFangRegular"`
+        ctx.fillText(String(text), field.x, field.y)
+      } else {
+        // All other fields: CJK → PingFang SC, Latin/numbers → Gotham
+        fillMixedText(ctx, String(text), field.x, field.y, field.font, field.size)
+      }
     } else {
       // Non-China employees, or the website field: always pure Gotham
       ctx.font = `${field.size}px "${FONTS[field.font]}"`
