@@ -5,9 +5,48 @@
 // coordinates, same fonts, same colours.
 
 import {
-  PAGE_SIZE, COLORS, FONTS, FONTS_CHINA, FIELDS, DEFAULTS,
+  PAGE_SIZE, COLORS, FONTS, FIELDS, DEFAULTS,
   TEMPLATE_PATHS, FONT_FILES,
 } from './esigConfig'
+
+// ── Mixed-font helpers (China employees only) ─────────────────────────────────
+// Chinese characters → PingFang SC; Latin / numbers / punctuation → Gotham.
+
+// CJK Unified Ideographs + Extension A + CJK Symbols & Punctuation + Fullwidth forms
+const CJK_RE = /[　-〿㐀-䶿一-鿿＀-￯]/
+
+// Map field.font → PingFang variant (heavy for names, regular for everything else)
+const PINGFANG = { name: 'PingFangHeavy', body: 'PingFangRegular', label: 'PingFangRegular' }
+
+/** Split a string into [{str, isChinese}, …] alternating CJK / non-CJK segments. */
+function splitMixed(text) {
+  const segs = []
+  let cur = '', curCn = null
+  for (const ch of String(text)) {
+    const isCn = CJK_RE.test(ch)
+    if (curCn === null) curCn = isCn
+    if (isCn !== curCn) { segs.push({ str: cur, isChinese: curCn }); cur = ch; curCn = isCn }
+    else cur += ch
+  }
+  if (cur) segs.push({ str: cur, isChinese: curCn ?? false })
+  return segs
+}
+
+/**
+ * Draw text with per-character font switching:
+ * CJK chars → PingFang, everything else → Gotham.
+ * Advances x correctly by measuring each segment before drawing the next.
+ */
+function fillMixedText(ctx, text, x, y, fieldFont, size) {
+  const segs = splitMixed(text)
+  let cx = x
+  for (const { str, isChinese } of segs) {
+    const family = isChinese ? PINGFANG[fieldFont] : FONTS[fieldFont]
+    ctx.font = `${size}px "${family}"`
+    ctx.fillText(str, cx, y)
+    cx += ctx.measureText(str).width
+  }
+}
 
 // ── Resource caches (load each asset only once per session) ──────────────────
 
@@ -73,8 +112,7 @@ export async function renderSignatureBlob(employee) {
   ctx.drawImage(template, 0, 0, PAGE_SIZE.width, PAGE_SIZE.height)
 
   // 2. Text fields
-  // China employees use PingFang SC; all others use Gotham
-  const fontMap = (employee.logo === 'china') ? FONTS_CHINA : FONTS
+  const isChina = employee.logo === 'china'
 
   ctx.textBaseline = 'top'  // matches Pillow anchor='lt'
   ctx.textAlign = 'left'
@@ -85,9 +123,15 @@ export async function renderSignatureBlob(employee) {
       : (employee[fieldKey] || DEFAULTS[fieldKey] || '')
     if (!text) continue
 
-    ctx.font = `${field.size}px "${fontMap[field.font]}"`
     ctx.fillStyle = COLORS[field.color]
-    ctx.fillText(String(text), field.x, field.y)
+
+    if (isChina) {
+      // Per-character font switching: CJK → PingFang SC, Latin/numbers → Gotham
+      fillMixedText(ctx, String(text), field.x, field.y, field.font, field.size)
+    } else {
+      ctx.font = `${field.size}px "${FONTS[field.font]}"`
+      ctx.fillText(String(text), field.x, field.y)
+    }
   }
 
   // 3. Canvas → JPEG Blob
