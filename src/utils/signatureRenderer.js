@@ -15,8 +15,8 @@ import {
 // CJK Unified Ideographs + Extension A + CJK Symbols & Punctuation + Fullwidth forms
 const CJK_RE = /[　-〿㐀-䶿一-鿿＀-￯]/
 
-// Map field.font → PingFang variant (heavy for names, regular for everything else)
-const PINGFANG = { name: 'PingFangHeavy', body: 'PingFangRegular', label: 'PingFangRegular' }
+// Map field.font → PingFang variant (semibold for name, regular for body/label)
+const PINGFANG = { name: 'PingFangSemibold', body: 'PingFangRegular', label: 'PingFangRegular' }
 
 /** Split a string into [{str, isChinese}, …] alternating CJK / non-CJK segments. */
 function splitMixed(text) {
@@ -125,10 +125,11 @@ export async function renderSignatureBlob(employee) {
 
     ctx.fillStyle = COLORS[field.color]
 
-    if (isChina) {
+    if (isChina && fieldKey !== 'website') {
       // Per-character font switching: CJK → PingFang SC, Latin/numbers → Gotham
       fillMixedText(ctx, String(text), field.x, field.y, field.font, field.size)
     } else {
+      // Non-China employees, or the website field: always pure Gotham
       ctx.font = `${field.size}px "${FONTS[field.font]}"`
       ctx.fillText(String(text), field.x, field.y)
     }

@@ -55,18 +55,11 @@ export const TEMPLATE_PATHS = {
 export const DISCLAIMER_PATH = '/esig/disclaimer.jpg'
 
 export const FONT_FILES = [
-  { family: 'GothamBold',      url: '/fonts/Gotham-Bold.otf'      },
-  { family: 'GothamMedium',    url: '/fonts/Gotham-Medium.otf'    },
-  { family: 'PingFangHeavy',   url: '/fonts/PingFang-Heavy.ttf'   },
-  { family: 'PingFangRegular', url: '/fonts/PingFang-Regular.ttf' },
+  { family: 'GothamBold',       url: '/fonts/Gotham-Bold.otf'       },
+  { family: 'GothamMedium',     url: '/fonts/Gotham-Medium.otf'     },
+  { family: 'PingFangSemibold', url: '/fonts/PingFang-Semibold.ttf' },
+  { family: 'PingFangRegular',  url: '/fonts/PingFang-Regular.ttf'  },
 ]
-
-// Font mapping for China employees — PingFang for name/body, Gotham for short labels (M/E/T)
-export const FONTS_CHINA = {
-  name:  'PingFangHeavy',
-  body:  'PingFangRegular',
-  label: 'GothamBold',
-}
 
 // Default registration numbers per company legal entity.
 // Admin can override / add entries via the Settings tab (stored in localStorage).
