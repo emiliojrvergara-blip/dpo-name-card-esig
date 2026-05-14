@@ -785,6 +785,103 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
   )
 }
 
+// ── Registration Numbers Editor ───────────────────────────────────────────────
+function RegNumbersEditor({ settings, setSettings, onSaved }) {
+  const regNums = settings.companyRegNumbers || {}
+  const [editingKey, setEditingKey] = useState(null)
+  const [editValue, setEditValue] = useState('')
+  const [newCompany, setNewCompany] = useState('')
+  const [newRegNo, setNewRegNo] = useState('')
+
+  function save(updated) {
+    setSettings(s => ({ ...s, companyRegNumbers: updated }))
+    onSaved()
+  }
+  function startEdit(key) { setEditingKey(key); setEditValue(regNums[key]) }
+  function commitEdit() {
+    if (!editValue.trim()) return
+    save({ ...regNums, [editingKey]: editValue.trim() })
+    setEditingKey(null)
+  }
+  function deleteEntry(key) {
+    const updated = { ...regNums }
+    delete updated[key]
+    save(updated)
+  }
+  function addNew() {
+    if (!newCompany.trim() || !newRegNo.trim()) return
+    save({ ...regNums, [newCompany.trim()]: newRegNo.trim() })
+    setNewCompany(''); setNewRegNo('')
+  }
+
+  return (
+    <div>
+      {Object.entries(regNums).map(([company, regNo]) => (
+        <div key={company} style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 0', borderBottom: `1px solid rgba(0,0,0,0.06)`,
+        }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, lineHeight: 1.3 }}>{company}</div>
+            {editingKey === company ? (
+              <input
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingKey(null) }}
+                autoFocus
+                style={{ ...inputStyle, padding: '5px 8px', fontSize: 12, marginTop: 4, width: '100%' }}
+              />
+            ) : (
+              <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 1 }}>{regNo}</div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            {editingKey === company ? (
+              <>
+                <button onClick={commitEdit} style={{ padding: '5px 10px', background: C.blue, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Save</button>
+                <button onClick={() => setEditingKey(null)} style={{ padding: '5px 10px', background: '#f5f5f7', color: C.textSecondary, border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => startEdit(company)} style={{ padding: '5px 10px', background: '#EFF2FF', color: C.blue, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
+                <button onClick={() => { if (window.confirm(`Remove registration number for "${company}"?`)) deleteEntry(company) }} style={{ padding: '5px 10px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer' }}>Delete</button>
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Add new entry */}
+      <div style={{ marginTop: 14, background: '#f9f9fb', borderRadius: 12, padding: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Add New Company</div>
+        <input
+          value={newCompany}
+          onChange={e => setNewCompany(e.target.value)}
+          placeholder="Company name (exact match)"
+          style={{ ...inputStyle, fontSize: 13, marginBottom: 6 }}
+        />
+        <input
+          value={newRegNo}
+          onChange={e => setNewRegNo(e.target.value)}
+          placeholder="Registration number"
+          style={{ ...inputStyle, fontSize: 13, marginBottom: 8 }}
+        />
+        <button
+          onClick={addNew}
+          disabled={!newCompany.trim() || !newRegNo.trim()}
+          style={{
+            width: '100%', padding: '9px 0', background: newCompany.trim() && newRegNo.trim() ? C.blue : '#c7c7cc',
+            color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600,
+            cursor: newCompany.trim() && newRegNo.trim() ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Add Company
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Card Settings Tab ─────────────────────────────────────────────────────────
 function SettingsTab({ settings, setSettings }) {
   const [saved, setSaved] = useState(false)
@@ -831,7 +928,7 @@ function SettingsTab({ settings, setSettings }) {
           </div>
         </div>
       </div>
-      <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>
+      <div style={{ background: C.surface, borderRadius: 16, padding: 20, marginBottom: 16, boxShadow: C.shadow }}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4, color: C.textPrimary }}>Header Background</div>
         <p style={{ fontSize: 13, color: C.textTertiary, marginBottom: 14 }}>Applies to all cards globally.</p>
         {settings.backgroundUrl && (
@@ -843,6 +940,14 @@ function SettingsTab({ settings, setSettings }) {
           </label>
           {settings.backgroundUrl && <button onClick={() => { setSettings(s => ({ ...s, backgroundUrl: null })); setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ padding: '10px 14px', background: '#fff0f0', color: '#ff3b30', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>Reset</button>}
         </div>
+      </div>
+
+      <div style={{ background: C.surface, borderRadius: 16, padding: 20, boxShadow: C.shadow }}>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4, color: C.textPrimary }}>Company Registration Numbers</div>
+        <p style={{ fontSize: 13, color: C.textTertiary, marginBottom: 14 }}>
+          Shown in parentheses after the company name on e-signatures. Chinese companies use 公司代码 format; all others use Reg. No.
+        </p>
+        <RegNumbersEditor settings={settings} setSettings={setSettings} onSaved={() => { setSaved(true); setTimeout(() => setSaved(false), 2000) }} />
       </div>
     </div>
   )

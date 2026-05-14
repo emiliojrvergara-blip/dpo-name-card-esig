@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import employeesRaw from '../data/employees.json'
 import { deriveCountry, getCountryToggles } from '../utils/countryDerive'
+import { COMPANY_REG_DEFAULTS } from '../utils/esigConfig'
 import dpoLogoDefault from '../assets/dpo-logo.png'
 
 // Fields that can be synced from Excel — admin edits to these are lockable
@@ -104,6 +105,7 @@ export function AppProvider({ children }) {
       logoUrlChina: parsed.logoUrlChina ?? null,
       backgroundUrl: parsed.backgroundUrl ?? null,
       logoMap: parsed.logoMap ?? {},
+      companyRegNumbers: parsed.companyRegNumbers ?? COMPANY_REG_DEFAULTS,
     }
   })
   const [adminLocks, setAdminLocks] = useState(() =>

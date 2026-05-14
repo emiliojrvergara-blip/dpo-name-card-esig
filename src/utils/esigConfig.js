@@ -55,11 +55,46 @@ export const TEMPLATE_PATHS = {
 export const DISCLAIMER_PATH = '/esig/disclaimer.jpg'
 
 export const FONT_FILES = [
-  { family: 'GothamBold',   url: '/fonts/Gotham-Bold.otf'   },
-  { family: 'GothamMedium', url: '/fonts/Gotham-Medium.otf' },
+  { family: 'GothamBold',      url: '/fonts/Gotham-Bold.otf'      },
+  { family: 'GothamMedium',    url: '/fonts/Gotham-Medium.otf'    },
+  { family: 'PingFangHeavy',   url: '/fonts/PingFang-Heavy.ttf'   },
+  { family: 'PingFangRegular', url: '/fonts/PingFang-Regular.ttf' },
 ]
 
-// Pick logo variant by country (China + Hong Kong = china logo, all else = english)
+// Font mapping for China employees — PingFang for name/body, Gotham for short labels (M/E/T)
+export const FONTS_CHINA = {
+  name:  'PingFangHeavy',
+  body:  'PingFangRegular',
+  label: 'GothamBold',
+}
+
+// Default registration numbers per company legal entity.
+// Admin can override / add entries via the Settings tab (stored in localStorage).
+export const COMPANY_REG_DEFAULTS = {
+  'DPO International Sdn. Bhd.':    '677120-X',
+  'DPO Malaysia Sdn. Bhd.':         '502497-U',
+  'DPO Malaysia FMCG Sdn. Bhd.':    '1292160-A',
+  'PT. DPO Indonesia':               '8120001850294',
+  'DPO Philippines Inc.':            'A200116688',
+  'DPO (Thailand) Ltd.':             '0105544001757',
+  'DPO Lanka (Private) Limited':     'W/98797',
+  'DPO Viet Nam Company Limited':    '0314666506',
+  '北京德毕欧贸易有限公司':             '91110105322176535H',
+}
+
+/**
+ * Format a registration number suffix for display.
+ * Chinese company names use Chinese-style parentheses + 公司代码 label.
+ * All others use "(Reg. No: XXXX)".
+ */
+export function formatRegNo(companyName, regNumbers) {
+  const regNo = (regNumbers || {})[companyName]
+  if (!regNo) return ''
+  const isChinese = /[一-鿿]/.test(companyName)
+  return isChinese ? ` （公司代码：${regNo}）` : ` (Reg. No: ${regNo})`
+}
+
+// Pick logo variant by country (China only = china logo, all else including HK = english)
 export function logoForCountry(country) {
-  return (country === 'China' || country === 'Hong Kong') ? 'china' : 'english'
+  return country === 'China' ? 'china' : 'english'
 }

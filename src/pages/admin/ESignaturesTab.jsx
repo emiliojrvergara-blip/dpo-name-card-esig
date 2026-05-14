@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import JSZip from 'jszip'
 import { deriveCountry } from '../../utils/countryDerive'
-import { logoForCountry } from '../../utils/esigConfig'
+import { logoForCountry, formatRegNo } from '../../utils/esigConfig'
 import { renderSignatureBlob, getDisclaimerBytes } from '../../utils/signatureRenderer'
 import { buildSignatureDocxBlob } from '../../utils/createSignatureDocx'
+import { useApp } from '../../context/AppContext'
 
 // ── Design tokens (matching Admin.jsx) ───────────────────────────────────────
 const C = {
@@ -121,7 +122,7 @@ function stripCompanyPrefix(address, company) {
 }
 
 // ── Build the payload sent to the renderer for one employee ─────────────────
-function employeeToSignatureInput(emp) {
+function employeeToSignatureInput(emp, companyRegNumbers = {}) {
   const country = deriveCountry(emp.office || '')
 
   // Parse address into 3 lines (address_line2..4).
@@ -141,9 +142,11 @@ function employeeToSignatureInput(emp) {
     division:      formatDivision(emp.division),
     mobile:        emp.mobile || '',
     email:         emp.email || '',
-    // Address block — line1 is the company name, lines 2-4 are the street address.
+    // Address block — line1 is the company name + reg no, lines 2-4 are the street address.
     // Unused lines get a non-breaking space to suppress KL HQ defaults.
-    address_line1: emp.company       || blank,
+    address_line1: emp.company
+      ? emp.company + formatRegNo(emp.company, companyRegNumbers)
+      : blank,
     address_line2: addrLine2         || blank,
     address_line3: addrLine3         || blank,
     address_line4: addrLine4         || blank,
@@ -168,6 +171,7 @@ const COUNTRIES = [
 
 // ── Tab component ────────────────────────────────────────────────────────────
 export default function ESignaturesTab({ employees }) {
+  const { settings } = useApp()
   const activeEmployees = useMemo(
     () => (employees || []).filter(e => !e.deleted),
     [employees]
@@ -316,7 +320,7 @@ export default function ESignaturesTab({ employees }) {
       await new Promise(r => setTimeout(r, 0))   // yield to UI
 
       try {
-        const input = employeeToSignatureInput(emp)
+        const input = employeeToSignatureInput(emp, settings.companyRegNumbers || {})
         const sigBlob = await renderSignatureBlob(input)
         const docxBlob = await buildSignatureDocxBlob(sigBlob, disclaimerBytes)
         const arrBuf = await docxBlob.arrayBuffer()

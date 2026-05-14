@@ -5,7 +5,7 @@
 // coordinates, same fonts, same colours.
 
 import {
-  PAGE_SIZE, COLORS, FONTS, FIELDS, DEFAULTS,
+  PAGE_SIZE, COLORS, FONTS, FONTS_CHINA, FIELDS, DEFAULTS,
   TEMPLATE_PATHS, FONT_FILES,
 } from './esigConfig'
 
@@ -73,6 +73,9 @@ export async function renderSignatureBlob(employee) {
   ctx.drawImage(template, 0, 0, PAGE_SIZE.width, PAGE_SIZE.height)
 
   // 2. Text fields
+  // China employees use PingFang SC; all others use Gotham
+  const fontMap = (employee.logo === 'china') ? FONTS_CHINA : FONTS
+
   ctx.textBaseline = 'top'  // matches Pillow anchor='lt'
   ctx.textAlign = 'left'
 
@@ -82,7 +85,7 @@ export async function renderSignatureBlob(employee) {
       : (employee[fieldKey] || DEFAULTS[fieldKey] || '')
     if (!text) continue
 
-    ctx.font = `${field.size}px "${FONTS[field.font]}"`
+    ctx.font = `${field.size}px "${fontMap[field.font]}"`
     ctx.fillStyle = COLORS[field.color]
     ctx.fillText(String(text), field.x, field.y)
   }
