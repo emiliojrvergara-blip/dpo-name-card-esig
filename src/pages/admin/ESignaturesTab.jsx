@@ -246,7 +246,7 @@ export default function ESignaturesTab({ employees }) {
     setManual(prev => ({ ...prev, [key]: val }))
   }
 
-  const manualValid = manual.name && manual.position && manual.mobile && manual.email
+  const manualValid = manual.name && manual.position && manual.email
 
   async function handleManualGenerate() {
     if (!manualValid) return
@@ -414,7 +414,7 @@ export default function ESignaturesTab({ employees }) {
             <LabeledInput label="Full name *"   value={manual.name}     onChange={v => setManualField('name', v)}     placeholder="e.g. Ahmad Razif" />
             <LabeledInput label="Position *"    value={manual.position} onChange={v => setManualField('position', v)} placeholder="e.g. Sales Manager" />
             <LabeledInput label="Division"      value={manual.division} onChange={v => setManualField('division', v)} placeholder="e.g. SCM - Supply Chain…" />
-            <LabeledInput label="Mobile *"      value={manual.mobile}   onChange={v => setManualField('mobile', v)}   placeholder="+6012 345 6789" />
+            <LabeledInput label="Mobile"        value={manual.mobile}   onChange={v => setManualField('mobile', v)}   placeholder="+6012 345 6789" />
             <LabeledInput label="Email *"       value={manual.email}    onChange={v => setManualField('email', v)}    placeholder="name@dpointernational.com" />
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>Country</div>
