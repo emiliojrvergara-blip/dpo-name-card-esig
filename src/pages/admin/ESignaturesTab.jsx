@@ -260,8 +260,7 @@ export default function ESignaturesTab({ employees }) {
       const addr = manual.address.trim()
       const cleanAddr = stripCompanyPrefix(addr, co)
       const [addrLine2, addrLine3, addrLine4] = splitAddressToLines(cleanAddr)
-      const hasOwnData = !!(addr || co)
-      const blank = hasOwnData ? ' ' : ''   // non-breaking space suppresses KL defaults
+      const blank = ' '  // always use non-breaking space so renderer never falls back to KL HQ defaults
 
       // Merge saved reg-number defaults with any manual override for this company
       const regNumbers = {
