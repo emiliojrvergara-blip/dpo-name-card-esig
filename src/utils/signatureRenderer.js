@@ -21,6 +21,12 @@ const PINGFANG = { name: 'PingFangSemibold', body: 'PingFangRegular', label: 'Pi
 // Address fields use PingFang SC for ALL characters (including Latin/numbers)
 const CHINA_PINGFANG_ONLY = new Set(['address_line1', 'address_line2', 'address_line3', 'address_line4'])
 
+// Name field: scale Chinese chars so their visual height matches Gotham cap height,
+// and shift y down so baselines align with the Latin text beside them.
+// PingFang fills ~88% of its em; Gotham caps sit at ~71% → scale ≈ 0.71/0.88 ≈ 0.81
+const CHINA_NAME_CN_SCALE   = 0.82   // Chinese size = nameSize × this  (tweak if needed)
+const CHINA_NAME_CN_Y_OFFS  = 7      // px — nudge down to align baseline (tweak if needed)
+
 /** Split a string into [{str, isChinese}, …] alternating CJK / non-CJK segments. */
 function splitMixed(text) {
   const segs = []
@@ -38,15 +44,19 @@ function splitMixed(text) {
 /**
  * Draw text with per-character font switching:
  * CJK chars → PingFang, everything else → Gotham.
- * Advances x correctly by measuring each segment before drawing the next.
+ * cnSizeScale and cnYOffset let callers shrink Chinese chars and nudge their
+ * baseline to match the Latin text alongside (used for the name field).
  */
-function fillMixedText(ctx, text, x, y, fieldFont, size) {
+function fillMixedText(ctx, text, x, y, fieldFont, size, cnSizeScale = 1, cnYOffset = 0) {
   const segs = splitMixed(text)
   let cx = x
   for (const { str, isChinese } of segs) {
-    const family = isChinese ? PINGFANG[fieldFont] : FONTS[fieldFont]
-    ctx.font = `${size}px "${family}"`
-    ctx.fillText(str, cx, y)
+    const family   = isChinese ? PINGFANG[fieldFont] : FONTS[fieldFont]
+    const drawSize = isChinese ? Math.round(size * cnSizeScale) : size
+    const drawY    = isChinese ? y + cnYOffset : y
+    ctx.font = `${drawSize}px "${family}"`
+    ctx.fillText(str, cx, drawY)
+    // Always measure at the segment's actual rendered size for correct x advance
     cx += ctx.measureText(str).width
   }
 }
@@ -135,7 +145,10 @@ export async function renderSignatureBlob(employee) {
         ctx.fillText(String(text), field.x, field.y)
       } else {
         // All other fields: CJK → PingFang SC, Latin/numbers → Gotham
-        fillMixedText(ctx, String(text), field.x, field.y, field.font, field.size)
+        // Name field: also scale Chinese size + offset y to match Latin cap height
+        const cnScale  = fieldKey === 'name' ? CHINA_NAME_CN_SCALE  : 1
+        const cnYOffs  = fieldKey === 'name' ? CHINA_NAME_CN_Y_OFFS : 0
+        fillMixedText(ctx, String(text), field.x, field.y, field.font, field.size, cnScale, cnYOffs)
       }
     } else {
       // Non-China employees, or the website field: always pure Gotham

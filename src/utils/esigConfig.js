@@ -84,7 +84,7 @@ export function formatRegNo(companyName, regNumbers) {
   const regNo = (regNumbers || {})[companyName]
   if (!regNo) return ''
   const isChinese = /[一-鿿]/.test(companyName)
-  return isChinese ? ` （公司代码：${regNo}）` : ` (Reg. No: ${regNo})`
+  return isChinese ? `（公司代码：${regNo}）` : ` (Reg. No: ${regNo})`
 }
 
 // Pick logo variant by country (China only = china logo, all else including HK = english)
