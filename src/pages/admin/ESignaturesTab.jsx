@@ -453,6 +453,10 @@ export default function ESignaturesTab({ employees }) {
               rows={3}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', background: '#f5f5f7', fontFamily: 'inherit', color: C.textPrimary, boxSizing: 'border-box', resize: 'vertical' }}
             />
+            <div style={{ fontSize: 11, color: C.textTertiary, marginTop: 5, lineHeight: 1.5 }}>
+              Use <strong style={{ fontFamily: 'monospace', color: C.textSecondary }}>,,</strong> (double comma) to control where each line breaks on the e-signature. The address fits across 3 lines — each <strong style={{ fontFamily: 'monospace', color: C.textSecondary }}>,,</strong> marks the start of the next line.{' '}
+              <span style={{ color: C.textTertiary }}>Example: Street,,City,,Postcode Country</span>
+            </div>
           </div>
 
           {manualError && (
