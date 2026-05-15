@@ -162,6 +162,7 @@ function employeeToSignatureInput(emp, companyRegNumbers = {}) {
 // ── Empty manual form state ─────────────────────────────────────────────────
 const EMPTY_MANUAL = {
   name: '', position: '', division: '', mobile: '', email: '', country: 'Malaysia',
+  company: '', regNo: '', address: '', officePhone: '',
 }
 
 const COUNTRIES = [
@@ -253,14 +254,35 @@ export default function ESignaturesTab({ employees }) {
     setManualError('')
     try {
       const disclaimerBytes = await getDisclaimerBytes()
+
+      // Build address block from manual fields
+      const co   = manual.company.trim()
+      const addr = manual.address.trim()
+      const cleanAddr = stripCompanyPrefix(addr, co)
+      const [addrLine2, addrLine3, addrLine4] = splitAddressToLines(cleanAddr)
+      const hasOwnData = !!(addr || co)
+      const blank = hasOwnData ? ' ' : ''   // non-breaking space suppresses KL defaults
+
+      // Merge saved reg-number defaults with any manual override for this company
+      const regNumbers = {
+        ...(settings.companyRegNumbers || {}),
+        ...(manual.regNo.trim() && co ? { [co]: manual.regNo.trim() } : {}),
+      }
+
       const input = {
-        name:     manual.name.trim(),
-        position: manual.position.trim(),
-        division: formatDivision(manual.division.trim()),
-        mobile:   manual.mobile.trim(),
-        email:    manual.email.trim(),
-        logo:     logoForCountry(manual.country),
-        _country: manual.country,
+        name:          manual.name.trim(),
+        position:      manual.position.trim(),
+        division:      formatDivision(manual.division.trim()),
+        mobile:        manual.mobile.trim(),
+        email:         manual.email.trim(),
+        address_line1: co ? co + formatRegNo(co, regNumbers) : blank,
+        address_line2: addrLine2 || blank,
+        address_line3: addrLine3 || blank,
+        address_line4: addrLine4 || blank,
+        tel:           manual.officePhone.trim() || blank,
+        website:       'www.dpointernational.com',
+        logo:          logoForCountry(manual.country),
+        _country:      manual.country,
       }
       const sigBlob = await renderSignatureBlob(input)
       const docxBlob = await buildSignatureDocxBlob(sigBlob, disclaimerBytes)
@@ -402,6 +424,38 @@ export default function ESignaturesTab({ employees }) {
               </select>
             </div>
           </div>
+
+          {/* ── Address block ─────────────────────────────────────────── */}
+          <div style={{ height: 1, background: 'rgba(0,0,0,0.06)', margin: '4px 0 10px' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <LabeledInput label="Company Name"  value={manual.company}     onChange={v => setManualField('company', v)}     placeholder="e.g. DPO Malaysia Sdn. Bhd." />
+            <LabeledInput label="Office Phone"  value={manual.officePhone} onChange={v => setManualField('officePhone', v)} placeholder="e.g. +603 4108 1282" />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+              Registration No <span style={{ textTransform: 'none', fontWeight: 400, color: C.textTertiary }}>(leave blank to use saved default for this company)</span>
+            </div>
+            <input
+              type="text"
+              value={manual.regNo}
+              onChange={e => setManualField('regNo', e.target.value)}
+              placeholder="e.g. 502497-U"
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', background: '#f5f5f7', fontFamily: 'inherit', color: C.textPrimary, boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+              Office Address <span style={{ textTransform: 'none', fontWeight: 400, color: C.textTertiary }}>(use ",," to separate lines)</span>
+            </div>
+            <textarea
+              value={manual.address}
+              onChange={e => setManualField('address', e.target.value)}
+              placeholder={'e.g. DPO House, B2-G, Lorong Selangor,,Pusat Komersial Gaya, Pusat Bandar Melawati,,53100 Kuala Lumpur, Malaysia.'}
+              rows={3}
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 13, outline: 'none', background: '#f5f5f7', fontFamily: 'inherit', color: C.textPrimary, boxSizing: 'border-box', resize: 'vertical' }}
+            />
+          </div>
+
           {manualError && (
             <div style={{ fontSize: 12, color: C.danger, marginBottom: 8 }}>{manualError}</div>
           )}
