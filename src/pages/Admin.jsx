@@ -479,6 +479,16 @@ function BulkEditModal({ count, onClose, onSave }) {
 // ── Employees Tab ─────────────────────────────────────────────────────────────
 function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
   const { saveEmployeeAdminOverride, deleteEmployee, lightReSync, hardReSync } = useApp()
+  const [search, setSearch] = useState('')
+  const [filterDiv, setFilterDiv] = useState('')
+  const [filterCountry, setFilterCountry] = useState('')
+  const [filterOffice, setFilterOffice] = useState('')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showBulkModal, setShowBulkModal] = useState(false)
+  const [showHardResync, setShowHardResync] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [selected, setSelected] = useState(new Set())
+  const [qrGenerating, setQrGenerating] = useState(false)
 
   const divisions = [...new Set(employees.map(e => e.division).filter(Boolean))].sort()
   const countries = [...new Set(employees.map(e => e.country).filter(Boolean))].sort()
