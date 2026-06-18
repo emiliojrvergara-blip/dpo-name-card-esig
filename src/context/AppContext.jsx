@@ -10,11 +10,20 @@ const LOCKABLE_FIELDS = [
   'office', 'company', 'address', 'officePhone', 'website',
 ]
 
+function getBaseEmployeesRaw() {
+  const uploaded = localStorage.getItem('dpo_uploaded_excel')
+  if (uploaded) {
+    try { return JSON.parse(uploaded) } catch { /* fall through */ }
+  }
+  return employeesRaw
+}
+
 function buildEmployees() {
+  const baseRaw = getBaseEmployeesRaw()
   const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
   const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
 
-  const fromSheet = employeesRaw
+  const fromSheet = baseRaw
     .filter(raw => {
       const id = raw.email.split('@')[0].replace(/\./g, '_')
       return !deletedIds.includes(id)
@@ -111,6 +120,10 @@ export function AppProvider({ children }) {
   const [adminLocks, setAdminLocks] = useState(() =>
     JSON.parse(localStorage.getItem('dpo_admin_locks') || '{}')
   )
+  const [uploadedExcelMeta, setUploadedExcelMeta] = useState(() => {
+    const s = localStorage.getItem('dpo_uploaded_excel_meta')
+    return s ? JSON.parse(s) : null
+  })
 
   useEffect(() => { localStorage.setItem('dpo_settings', JSON.stringify(settings)) }, [settings])
   useEffect(() => { localStorage.setItem('dpo_admins', JSON.stringify(admins)) }, [admins])
@@ -155,11 +168,12 @@ export function AppProvider({ children }) {
   // Adds new employees, fills only empty/null fields from Excel, removes employees
   // no longer in Excel. Never overwrites a field that already has a value.
   function lightReSync() {
+    const baseRaw = getBaseEmployeesRaw()
     const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
     const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
     const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
     const manualIds = new Set(manualList.map(e => e.id))
-    const excelIds = new Set(employeesRaw.map(raw => raw.email.split('@')[0].replace(/\./g, '_')))
+    const excelIds = new Set(baseRaw.map(raw => raw.email.split('@')[0].replace(/\./g, '_')))
 
     // Remove Excel employees that are no longer in the Excel file
     const newDeletedIds = [
@@ -170,7 +184,7 @@ export function AppProvider({ children }) {
     localStorage.setItem('dpo_deleted_ids', JSON.stringify(uniqueDeletedIds))
 
     // For each Excel employee, add if new OR fill in only empty fields
-    employeesRaw.forEach(raw => {
+    baseRaw.forEach(raw => {
       const id = raw.email.split('@')[0].replace(/\./g, '_')
       if (uniqueDeletedIds.includes(id)) return // skip explicitly deleted
       const country = deriveCountry(raw.office)
@@ -204,11 +218,12 @@ export function AppProvider({ children }) {
   // Employee-only data (photo, social, toggles, customButtons) is preserved.
   // Adds new employees, removes employees no longer in Excel, clears admin locks.
   function hardReSync() {
+    const baseRaw = getBaseEmployeesRaw()
     const stored = JSON.parse(localStorage.getItem('dpo_emp_overrides') || '{}')
     const deletedIds = JSON.parse(localStorage.getItem('dpo_deleted_ids') || '[]')
     const manualList = JSON.parse(localStorage.getItem('dpo_manual_employees') || '[]')
     const manualIds = new Set(manualList.map(e => e.id))
-    const excelIds = new Set(employeesRaw.map(raw => raw.email.split('@')[0].replace(/\./g, '_')))
+    const excelIds = new Set(baseRaw.map(raw => raw.email.split('@')[0].replace(/\./g, '_')))
 
     // Rebuild deleted list: keep manual-employee deletions, remove Excel employees
     // that are no longer in Excel, restore previously deleted Excel employees
@@ -220,7 +235,7 @@ export function AppProvider({ children }) {
     localStorage.setItem('dpo_deleted_ids', JSON.stringify(uniqueDeletedIds))
 
     // Overwrite all Excel-sourced fields; preserve employee-only data
-    employeesRaw.forEach(raw => {
+    baseRaw.forEach(raw => {
       const id = raw.email.split('@')[0].replace(/\./g, '_')
       const existing = stored[id] || {}
       stored[id] = {
@@ -246,6 +261,21 @@ export function AppProvider({ children }) {
     localStorage.setItem('dpo_emp_overrides', JSON.stringify(stored))
     localStorage.removeItem('dpo_admin_locks')
     setAdminLocks({})
+    setEmployees(buildEmployees())
+  }
+
+  function uploadExcelDatabase(parsedArray) {
+    const meta = { uploadedAt: new Date().toISOString(), count: parsedArray.length }
+    localStorage.setItem('dpo_uploaded_excel', JSON.stringify(parsedArray))
+    localStorage.setItem('dpo_uploaded_excel_meta', JSON.stringify(meta))
+    setUploadedExcelMeta(meta)
+    setEmployees(buildEmployees())
+  }
+
+  function clearUploadedExcel() {
+    localStorage.removeItem('dpo_uploaded_excel')
+    localStorage.removeItem('dpo_uploaded_excel_meta')
+    setUploadedExcelMeta(null)
     setEmployees(buildEmployees())
   }
 
@@ -323,12 +353,13 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
-      employees, user, admins, settings, adminLocks,
+      employees, user, admins, settings, adminLocks, uploadedExcelMeta,
       setSettings, setAdmins,
       login, logout, isAdmin, getEmployee,
       changePassword, forgotPassword,
       saveEmployeeOverride, saveEmployeeAdminOverride,
       addManualEmployee, deleteEmployee, lightReSync, hardReSync,
+      uploadExcelDatabase, clearUploadedExcel,
     }}>
       {children}
     </AppContext.Provider>

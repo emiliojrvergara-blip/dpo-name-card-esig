@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import dpoLogo from '../assets/dpo-logo.png'
@@ -17,13 +17,6 @@ const C = {
   shadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
 }
 
-const DIVISIONS = [
-  'ADM - Administration', 'CSM - Consumer', 'FDS - Foodservice',
-  'FNL - Finance & Legal', 'FPR - Food Processing', 'HRM - Human Resources Management',
-  'ICT - Information & Communication Technology', 'IND - Industry', 'MKT - Marketing',
-  'NBD - New Business Development', 'RTL - Retail', 'SCM - Supply Chain Management',
-  'SCR - Scientific & Regulatory Affairs',
-]
 
 const TABS = [
   { id: 'employees', label: 'Employees', icon: EmpIcon },
@@ -119,7 +112,7 @@ function ConfirmModal({ title, message, confirmLabel, confirmStyle = {}, onClose
 }
 
 // ── Admin Employee Edit Modal ─────────────────────────────────────────────────
-function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
+function AdminEmpModal({ emp, lockedFields = [], divisions = [], onClose, onSave }) {
   const [form, setForm] = useState({ ...emp })
   function update(key, val) { setForm(f => ({ ...f, [key]: val })) }
   function updateSocial(key, val) { setForm(f => ({ ...f, social: { ...f.social, [key]: val } })) }
@@ -285,7 +278,7 @@ function AdminEmpModal({ emp, lockedFields = [], onClose, onSave }) {
 }
 
 // ── Add Employee Modal ────────────────────────────────────────────────────────
-function AddEmpModal({ onClose, onAdd }) {
+function AddEmpModal({ onClose, onAdd, divisions = [] }) {
   const [form, setForm] = useState({ cardName:'', email:'', position:'', division:'', mobile:'', office:'', company:'', address:'', officePhone:'' })
   const [error, setError] = useState('')
   function update(key, val) { setForm(f => ({ ...f, [key]: val })) }
@@ -485,7 +478,7 @@ function BulkEditModal({ count, onClose, onSave }) {
 
 // ── Employees Tab ─────────────────────────────────────────────────────────────
 function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
-  const { saveEmployeeAdminOverride, deleteEmployee, lightReSync, hardReSync } = useApp()
+  const { saveEmployeeAdminOverride, deleteEmployee, lightReSync, hardReSync, uploadExcelDatabase, clearUploadedExcel, uploadedExcelMeta } = useApp()
   const [search, setSearch] = useState('')
   const [filterDiv, setFilterDiv] = useState('')
   const [filterCountry, setFilterCountry] = useState('')
@@ -496,6 +489,59 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [selected, setSelected] = useState(new Set())
   const [qrGenerating, setQrGenerating] = useState(false)
+  const [uploadParsed, setUploadParsed] = useState(null)
+  const [uploadError, setUploadError] = useState(null)
+  const [uploadFilename, setUploadFilename] = useState(null)
+  const uploadRef = useRef(null)
+
+  async function handleExcelFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadFilename(file.name)
+    setUploadError(null)
+    setUploadParsed(null)
+    try {
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer, { type: 'array' })
+      const ws = wb.Sheets['Listing']
+      if (!ws) throw new Error('Sheet named "Listing" not found. Please use the standard Employee Database file.')
+      const data = XLSX.utils.sheet_to_json(ws, { defval: '' })
+      const parsed = data
+        .filter(row => row['Email'] && String(row['Email']).includes('@'))
+        .map(row => ({
+          salutation:  String(row['Salutation'] || '').trim(),
+          callingName: String(row['Calling Name'] || '').trim(),
+          fullName:    String(row['Full Name'] || '').trim(),
+          cardName:    String(row['Name to Appear on Card'] || row['Full Name'] || '').trim(),
+          position:    String(row['Position'] || '').trim(),
+          division:    String(row['Division'] || '').trim(),
+          mobile:      String(row['Mobile Tel'] || '').trim(),
+          email:       String(row['Email'] || '').trim().toLowerCase(),
+          office:      String(row['Office'] || '').trim(),
+          company:     String(row['Company Name/ Legal Entity'] || '').trim(),
+          address:     String(row['Address'] || '').replace(/\r\n/g, ', ').replace(/\n/g, ', ').trim(),
+          officePhone: String(row['Office Phone Number'] || '').trim(),
+        }))
+      if (parsed.length === 0) throw new Error('No valid employees found. Check that the file has an "Email" column in the Listing sheet.')
+      setUploadParsed(parsed)
+    } catch (err) {
+      setUploadError(err.message)
+    }
+    e.target.value = ''
+  }
+
+  function handleConfirmUpload() {
+    if (!uploadParsed) return
+    uploadExcelDatabase(uploadParsed)
+    setUploadParsed(null)
+    setUploadFilename(null)
+  }
+
+  function handleCancelUpload() {
+    setUploadParsed(null)
+    setUploadError(null)
+    setUploadFilename(null)
+  }
 
   const divisions = [...new Set(employees.map(e => e.division).filter(Boolean))].sort()
   const countries = [...new Set(employees.map(e => e.country).filter(Boolean))].sort()
@@ -590,7 +636,7 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
 
   return (
     <div style={{ paddingTop: 12 }}>
-      {showAddModal && <AddEmpModal onClose={() => setShowAddModal(false)} onAdd={onAddEmployee} />}
+      {showAddModal && <AddEmpModal onClose={() => setShowAddModal(false)} onAdd={onAddEmployee} divisions={divisions} />}
       {showBulkModal && <BulkEditModal count={selected.size} onClose={() => setShowBulkModal(false)} onSave={handleBulkSave} />}
       {showHardResync && (
         <ConfirmModal
@@ -666,6 +712,63 @@ function EmployeesTab({ employees, onEdit, onAddEmployee, adminLocks }) {
         </svg>
         Export Card Links
       </button>
+
+      {/* Upload Excel Database */}
+      <input ref={uploadRef} type="file" accept=".xlsx" style={{ display: 'none' }} onChange={handleExcelFileChange} />
+      <div style={{ background: C.surface, borderRadius: 14, padding: '12px 14px', marginBottom: 12, boxShadow: C.shadow }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+          Employee Database
+        </div>
+        {uploadedExcelMeta && !uploadParsed && (
+          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 10, padding: '8px 12px', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#166534' }}>Uploaded file active</div>
+              <div style={{ fontSize: 11, color: '#4ade80' }}>{uploadedExcelMeta.count} employees · {new Date(uploadedExcelMeta.uploadedAt).toLocaleDateString()}</div>
+            </div>
+            <button onClick={clearUploadedExcel} style={{ fontSize: 11, fontWeight: 600, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>
+              Revert to bundled
+            </button>
+          </div>
+        )}
+        {uploadParsed && (
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '8px 12px', marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#1e40af', marginBottom: 4 }}>
+              Ready to apply: {uploadParsed.length} employees found in "{uploadFilename}"
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleConfirmUpload} style={{ flex: 1, padding: '7px 0', background: C.blue, color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Apply Upload
+              </button>
+              <button onClick={handleCancelUpload} style={{ padding: '7px 14px', background: 'none', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12, color: '#6e6e73', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {uploadError && (
+          <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '8px 12px', marginBottom: 8, fontSize: 12, color: '#be123c' }}>
+            {uploadError}
+          </div>
+        )}
+        <button onClick={() => uploadRef.current?.click()} style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '10px 0',
+          background: uploadedExcelMeta ? '#f5f5f7' : '#fffbeb',
+          border: `1px dashed ${uploadedExcelMeta ? C.border : '#fbbf24'}`,
+          borderRadius: 10, color: uploadedExcelMeta ? C.textSecondary : '#92400e',
+          fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        }}>
+          <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          {uploadedExcelMeta ? 'Replace with new Excel file' : 'Upload Excel Database (.xlsx)'}
+        </button>
+        {!uploadedExcelMeta && (
+          <div style={{ fontSize: 10, color: C.textTertiary, textAlign: 'center', marginTop: 5 }}>
+            Upload a new Employee Database Excel file to refresh all name cards and e-signatures without rebuilding the app.
+          </div>
+        )}
+      </div>
 
       {/* Sync buttons */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -1099,6 +1202,11 @@ export default function Admin() {
   if (!user) { navigate('/login'); return null }
   if (!isAdmin(user.email)) { navigate('/dashboard'); return null }
 
+  const divisions = useMemo(
+    () => [...new Set(employees.map(e => e.division).filter(Boolean))].sort(),
+    [employees]
+  )
+
   function handleLogout() { logout(); navigate('/login') }
   function handleSaveEmp(patch) { saveEmployeeAdminOverride(patch.id, patch) }
 
@@ -1114,6 +1222,7 @@ export default function Admin() {
         <AdminEmpModal
           emp={editingEmp}
           lockedFields={adminLocks[editingEmp.id] || []}
+          divisions={divisions}
           onClose={() => setEditingEmp(null)}
           onSave={handleSaveEmp}
         />
