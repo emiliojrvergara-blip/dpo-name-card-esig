@@ -895,22 +895,39 @@ function SettingsTab({ settings, setSettings }) {
       const ws = wb.Sheets['Listing']
       if (!ws) throw new Error('Sheet named "Listing" not found. Please use the standard Employee Database file.')
       const data = XLSX.utils.sheet_to_json(ws, { defval: '' })
+
+      // Build China employee map from "CHN Employee Cards" sheet (keyed by lowercase email)
+      const chnMap = {}
+      const ws2 = wb.Sheets['CHN Employee Cards']
+      if (ws2) {
+        XLSX.utils.sheet_to_json(ws2, { defval: '' }).forEach(row => {
+          const email = String(row['Email'] || '').trim().toLowerCase()
+          if (email) chnMap[email] = row
+        })
+      }
+
       const parsed = data
         .filter(row => row['Email'] && String(row['Email']).includes('@'))
-        .map(row => ({
-          salutation:  String(row['Salutation'] || '').trim(),
-          callingName: String(row['Calling Name'] || '').trim(),
-          fullName:    String(row['Full Name'] || '').trim(),
-          cardName:    String(row['Name to Appear on Card'] || row['Full Name'] || '').trim(),
-          position:    String(row['Position'] || '').trim(),
-          division:    String(row['Division'] || '').trim(),
-          mobile:      String(row['Mobile Tel'] || '').trim(),
-          email:       String(row['Email'] || '').trim().toLowerCase(),
-          office:      String(row['Office'] || '').trim(),
-          company:     String(row['Company Name/ Legal Entity'] || '').trim(),
-          address:     String(row['Address'] || '').replace(/\r\n/g, ', ').replace(/\n/g, ', ').trim(),
-          officePhone: String(row['Office Phone Number'] || '').trim(),
-        }))
+        .map(row => {
+          const email = String(row['Email'] || '').trim().toLowerCase()
+          const chn = chnMap[email]
+          return {
+            salutation:  String(row['Salutation'] || '').trim(),
+            callingName: String(row['Calling Name'] || '').trim(),
+            fullName:    String(row['Full Name'] || '').trim(),
+            cardName:    String((chn && chn['Name to Appear on Card']) || row['Name to Appear on Card'] || row['Full Name'] || '').trim(),
+            position:    String((chn && chn['Position'])             || row['Position'] || '').trim(),
+            division:    String((chn && chn['Division'])             || row['Division'] || '').trim(),
+            mobile:      String((chn && chn['Mobile Tel'])           || row['Mobile Tel'] || '').trim(),
+            email,
+            office:      String(row['Office'] || '').trim(),
+            company:     String((chn && chn['Company Name'])         || row['Company Name/ Legal Entity'] || '').trim(),
+            address: chn
+              ? String(chn['Address'] || '').replace(/\r\n/g, ',,').replace(/\n/g, ',,').trim()
+              : String(row['Address'] || '').replace(/\r\n/g, ', ').replace(/\n/g, ', ').trim(),
+            officePhone: String((chn && chn['Office Phone Number'])  || row['Office Phone Number'] || '').trim(),
+          }
+        })
       if (parsed.length === 0) throw new Error('No valid employees found. Check that the file has an "Email" column in the Listing sheet.')
       setUploadParsed(parsed)
     } catch (err) {
